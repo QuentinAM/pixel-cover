@@ -1,10 +1,9 @@
 <script lang="ts">
     import type { CoverType } from '$lib/type';
     import { onMount } from "svelte";
-    import { user, gameParams } from "$lib/store";
+    import { user } from "$lib/store";
     import { goto } from "$app/navigation";
     import { slide } from 'svelte/transition';
-    import { IsGuessValid } from '$lib/utils';
     import Cover from "$lib/components/Cover.svelte";
 
     const to_guess: CoverType[] = [
@@ -34,7 +33,7 @@
     function AttemptGuess()
     {
         // Check for guess validity
-        if (!IsGuessValid(current_guess_title, current_guess_artist, `${displayed_cover}`))
+        if (false)
         {
             alert('invalid guess');
             return;
