@@ -1,13 +1,15 @@
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 import { CreateRoom } from "./handlers/create";
 import { GuessCover } from "./handlers/guess";
 import { JoinRoom } from "./handlers/join";
 import { LeaveRoom } from "./handlers/leave";
+import { NextRound } from "./handlers/next";
 import { StartRoom } from "./handlers/start";
-import type { CreateMessage, GuessMessage, JoinResponse, LeaveMessage, Message, Room, StartMessage } from "./types";
+import type { CreateMessage, GuessMessage, JoinResponse, LeaveMessage, Message, NextMessage, Room, StartMessage, WebSocketPlayer } from "./types";
 
 const wss = new WebSocketServer({ port: 8080 });
 export const rooms = new Map<string, Room>();
+export const wsStore = new Map<string, WebSocketPlayer[]>();
 
 wss.on('listening', () => {
   console.log('listening on port 8080');
@@ -34,8 +36,13 @@ wss.on('connection', function connection(ws) {
                 break;
             case 'START':
                 StartRoom(ws, data as StartMessage);
+                break;
             case 'GUESS':
                 GuessCover(ws, data as GuessMessage);
+                break;
+            case 'NEXT':
+                NextRound(ws, data as NextMessage);
+                break;
             default:
                 break;
         }

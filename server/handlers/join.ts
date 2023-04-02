@@ -1,6 +1,6 @@
 import { WebSocket } from "ws";
 import type { Player, JoinResponse, UpdateResponse } from "../types";
-import { rooms } from "../index";
+import { rooms, wsStore } from "../index";
 import { UpdateRoom } from "../update";
 
 export function JoinRoom(ws_obj: WebSocket, data: JoinResponse) {
@@ -58,11 +58,22 @@ export function JoinRoom(ws_obj: WebSocket, data: JoinResponse) {
     room.players.push({
         id: data.data.player_id,
         name: player_name,
-        score: 0,
-        ws: ws_obj
+        score: 0
     });
 
     console.log(`${data.data.player_id} joined room ${room_id}`);
-    
+    const wsList = wsStore.get(room_id);
+    if (wsList) {
+        wsList.push({
+            id: data.data.player_id,
+            ws: ws_obj
+        });
+        wsStore.set(room_id, wsList);
+    }
+    else{
+        console.log(`Room ${room_id} does not exist in wsStore`);
+        return;
+    }
+
     UpdateRoom(room_id, room);
 }

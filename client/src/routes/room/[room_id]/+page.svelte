@@ -4,11 +4,12 @@
 	import { room, user } from '$lib/store';
     import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
-    import type { GuessMessage, JoinResponse, LeaveMessage, StartMessage } from '$lib/websocket/types';
+    import type { GuessMessage, JoinResponse, LeaveMessage, NextMessage, StartMessage } from '$lib/websocket/types';
     import Cover from '$lib/components/Cover.svelte';
 
 	const room_id = $page.params.room_id;
 	let is_host: boolean = false;
+	let is_spec: boolean = false;
     let sendmessage: any;
 	let loading: boolean = true;
 
@@ -20,6 +21,7 @@
 
 	// Updated value
 	$: player = $room?.players.find((player) => player.id == $user.id);
+	$: game_ended = $room?.index == $room?.covers.length;
 
 	function LeaveRoom()
 	{
@@ -47,6 +49,21 @@
 		{
 			const message: StartMessage = {
 				type: 'START',
+				data:{
+					room_id: room_id,
+					user_id: $user.id
+				}
+			};
+			sendmessage(message);
+		}
+	}
+
+	function NextRound()
+	{
+		if (is_host)
+		{
+			const message: NextMessage = {
+				type: 'NEXT',
 				data:{
 					room_id: room_id,
 					user_id: $user.id
@@ -119,6 +136,7 @@
 				{
 					unsubscribe();
 					is_host = value.host_player_id == $user.id;
+					is_spec = value.players.find((player) => player.id == $user.id) == null;
 					loading = false;
 				}
 				else
@@ -132,6 +150,7 @@
 		else
 		{
 			is_host = $room.host_player_id == $user.id;
+			is_spec = $room.players.find((player) => player.id == $user.id) == null;
 			loading = false;
 		}
 	});
@@ -164,35 +183,42 @@
 					<div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
 						<div class="card-body">
 							<div class="flex flex-col space-y-2 w-80">
-								{#if $room.currently_guessed && $room.covers[$room.index].title && $room.covers[$room.index].artist}
-									<div class="flex flex-row space-x-2" transition:slide>
-										<h2 class="text-2xl font-bold underline">{$room.covers[$room.index].title}</h2>
-										<h3 class="text-2xl font-bold">by {$room.covers[$room.index].artist}</h3>
-									</div>
-								{/if}
-								<div class="h-80 w-80">
-									<Cover cover={$room.covers[$room.index]} pixelate={!$room.currently_guessed} />
-								</div>
-								{#if !$room.currently_guessed}
-									<div class="w-full flex flex-row space-x-2">
-										<div class="form-control w-1/2">
-											<label class="label">
-												<input class="hidden"/>
-												<span class="label-text">Title</span>
-											</label>
-											<input bind:this={title_input} bind:value={current_guess_title} type="text" placeholder="..." class="input input-bordered w-full" />
+								{#if game_ended}
+									<h1>GG wp</h1>
+								{:else}
+									{#if $room.currently_guessed && $room.covers[$room.index].title && $room.covers[$room.index].artist}
+										<div class="flex flex-row space-x-2" transition:slide>
+											<h2 class="text-2xl font-bold underline">{$room.covers[$room.index].title}</h2>
+											<h3 class="text-2xl font-bold">by {$room.covers[$room.index].artist}</h3>
 										</div>
-										<div class="form-control w-1/2">
-											<label class="label">
-												<input class="hidden"/>
-												<span class="label-text">Artist</span>
-											</label>
-											<input bind:this={artist_input} bind:value={current_guess_artist} type="text" placeholder="..." class="input input-bordered w-full" />
-										</div>
+									{/if}
+									<div class="h-80 w-80">
+										<Cover cover={$room.covers[$room.index]} pixelate={!$room.currently_guessed} />
 									</div>
-								{/if}
-								{#if $room.timer}
-									{$room.timer.time}
+									{#if !$room.currently_guessed && !is_spec}
+										<div class="w-full flex flex-row space-x-2">
+											<div class="form-control w-1/2">
+												<label class="label">
+													<input class="hidden"/>
+													<span class="label-text">Title</span>
+												</label>
+												<input bind:this={title_input} bind:value={current_guess_title} type="text" placeholder="..." class="input input-bordered w-full" />
+											</div>
+											<div class="form-control w-1/2">
+												<label class="label">
+													<input class="hidden"/>
+													<span class="label-text">Artist</span>
+												</label>
+												<input bind:this={artist_input} bind:value={current_guess_artist} type="text" placeholder="..." class="input input-bordered w-full" />
+											</div>
+										</div>
+									{/if}
+									{#if $room.timer}
+										{$room.timer.time}
+									{/if}
+									{#if $room.currently_guessed && is_host}
+										<button class="btn btn-primary" on:click={NextRound}>Next Round</button>
+									{/if}
 								{/if}
 							</div>
 						</div>

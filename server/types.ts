@@ -1,6 +1,6 @@
-import type { WebSocket } from "ws";
+import { WebSocket } from "ws";
 
-export type MessageType = 'CREATE' | 'UPDATE' | 'JOIN' | 'LEAVE' | 'ERROR' | 'START' | 'GUESS';
+export type MessageType = 'CREATE' | 'UPDATE' | 'JOIN' | 'LEAVE' | 'ERROR' | 'START' | 'GUESS' | 'NEXT';
 
 export interface Message {
     type: MessageType;
@@ -64,11 +64,23 @@ export interface GuessMessage extends Message {
     }
 }
 
+export interface NextMessage extends Message {
+    type: 'NEXT';
+    data: {
+        room_id: string;
+        user_id: string; // Need to be host
+    }
+}
+
 export interface Player {
     id: string;
     name: string;
     score: number;
-    ws: WebSocket | null;
+}
+
+export interface WebSocketPlayer {
+    ws?: WebSocket;
+    id: string;
 }
 
 export interface Cover {
@@ -81,12 +93,13 @@ export interface Room {
     id: string;
     host_player_id: string;
     players: Player[];
+    spectators: Player[];
     covers: Cover[];
     playing: boolean;
 
     // Guess management
     index: number; // Index of the current cover
-    timer: NodeJS.Timeout | null;
+    last_guess: string; // Date
     currently_guessed: boolean; // Has someone guessed the cover, only true during timer
 
     // Settings

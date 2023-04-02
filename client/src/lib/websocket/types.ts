@@ -1,6 +1,6 @@
 import type { WebSocket } from "ws";
 
-export type MessageType = 'CREATE' | 'UPDATE' | 'JOIN' | 'LEAVE' | 'ERROR' | 'START' | 'GUESS';
+export type MessageType = 'CREATE' | 'UPDATE' | 'JOIN' | 'LEAVE' | 'ERROR' | 'START' | 'GUESS' | 'NEXT';
 
 export interface Message {
     type: MessageType;
@@ -64,6 +64,14 @@ export interface GuessMessage extends Message {
     }
 }
 
+export interface NextMessage extends Message {
+    type: 'NEXT';
+    data: {
+        room_id: string;
+        user_id: string; // Need to be host
+    }
+}
+
 export interface Player {
     id: string;
     name: string;
@@ -81,6 +89,7 @@ export interface Room {
     id: string;
     host_player_id: string;
     players: Player[];
+    spectators: Player[];
     covers: Cover[];
     playing: boolean;
 

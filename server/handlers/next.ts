@@ -1,11 +1,13 @@
 import { WebSocket } from "ws";
-import type { Room, Player, LeaveMessage } from "../types";
-import { rooms, wsStore } from "../index";
+import type { NextMessage } from "../types";
+import { rooms } from "../index";
 import { UpdateRoom } from "../update";
 
-export function LeaveRoom(ws: WebSocket, data: LeaveMessage) {
+export function NextRound(ws: WebSocket, data: NextMessage) {
     const room_id = data.data.room_id;
-    const player_id = data.data.player_id;
+    const player_id = data.data.user_id;
+
+    console.log(`Player ${player_id} is trying to start the next round in room ${room_id}`);
 
     // Check if room exists
     let room = rooms.get(room_id);
@@ -33,22 +35,20 @@ export function LeaveRoom(ws: WebSocket, data: LeaveMessage) {
         return;
     }
 
-    console.log(`Player ${player_id} is leaving room ${room_id}`);
-
-    // Remove player from room
-    room.players = room.players.filter(player => player.id !== player_id);
-    
-    // If room is empty, delete it
-    if (room.players.length === 0) {
-        console.log(`Room ${room_id} is empty, deleting it`);
-        rooms.delete(room_id);
+    // Check if player is host
+    if (player.id !== room.host_player_id) {
+        const error = {
+            type: 'ERROR',
+            data: {
+                message: `Player ${player_id} is not host of room ${room_id}`
+            }
+        };
+        ws.send(JSON.stringify(error));
         return;
     }
 
-    let wsList = wsStore.get(room_id);
-    if (wsList) {
-        wsList = wsList.filter(ws => ws.id !== player_id);
-        wsStore.set(room_id, wsList);
-    }
+    room.index += 1;
+    room.currently_guessed = false;
+    room.last_guess = '';
     UpdateRoom(room_id, room);
 }

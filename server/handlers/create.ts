@@ -1,16 +1,15 @@
 import { WebSocket } from "ws";
-import type { Room, Player, CreateMessage } from "../types";
-import { rooms } from "../index";
+import type { Room, Player, CreateMessage, WebSocketPlayer } from "../types";
+import { rooms, wsStore } from "../index";
 import { UpdateRoom } from "../update";
 
-export function CreateRoom(ws: WebSocket, data: CreateMessage) {
+export function CreateRoom(ws_: WebSocket, data: CreateMessage) {
     const room_id = Math.random().toString(36).substr(2, 9);
 
     const host: Player = {
         id: data.data.host_id,
         name: data.data.host_name,
-        score: 0,
-        ws: ws
+        score: 0
     }
 
     const room: Room = {
@@ -23,10 +22,16 @@ export function CreateRoom(ws: WebSocket, data: CreateMessage) {
         case_sensitive: false,
         allow_misspelling: 0,
         playing: false,
-        timer: null,
+        last_guess: '',
         replace_special_chars: true,
+        spectators: [],
         time_to_answer_after_first_guess: 3
     };
+    const ws_obj: WebSocketPlayer = {
+        ws: ws_,
+        id: host.id
+    }
+    wsStore.set(room_id, [ws_obj]);
     
     console.log(`${host.id} created room ${room_id}`);
     UpdateRoom(room_id, room);

@@ -44,19 +44,24 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
         return;
     }
 
+    // Check if can still guess
+    if (room.currently_guessed)
+    {
+        const error = {
+            type: 'ERROR',
+            data: {
+                message: `Someone already guessed in room ${room_id}`
+            }
+        };
+        ws.send(JSON.stringify(error));
+        return;
+    }
+
     // Check if guess is correct
     console.log(`Player ${player_id} guessing ${data.data.artist_guess} - ${data.data.title_guess} in room ${room_id}`);
     if (IsGuessCorrect(room, data.data.artist_guess, data.data.title_guess)) {
         console.log(`Player ${player_id} guessed correctly in room ${room_id}`);
-        // Setup timer, so the others have time to guess
-        room.timer = setTimeout(() => {
-            if (!room) return;
-            room.currently_guessed = true;
-            room.timer = null;
-
-            // Update room
-            UpdateRoom(room_id, room);
-        }, room.time_to_answer_after_first_guess * 1000);
+        room.currently_guessed = true;
         room.players.find(player => player.id === player_id)!.score += 1;
         UpdateRoom(room_id, room);
     }
