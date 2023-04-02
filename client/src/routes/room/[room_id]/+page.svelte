@@ -1,24 +1,205 @@
 <script lang="ts">
 	import { page } from '$app/stores';
     import { onMount } from 'svelte';
-	import { room } from '$lib/store';
+	import { room, user } from '$lib/store';
     import { goto } from '$app/navigation';
+	import { slide } from 'svelte/transition';
+    import type { GuessMessage, JoinResponse, LeaveMessage, StartMessage } from '$lib/websocket/types';
+    import Cover from '$lib/components/Cover.svelte';
+
+	const room_id = $page.params.room_id;
+	let is_host: boolean = false;
+    let sendmessage: any;
+	let loading: boolean = true;
+
+    let title_input_selected: boolean = true;
+    let title_input: any;
+    let artist_input: any;
+    let current_guess_title: string = '';
+    let current_guess_artist: string = '';
+
+	// Updated value
+	$: player = $room?.players.find((player) => player.id == $user.id);
 
 	function LeaveRoom()
 	{
-		
+		const message: LeaveMessage = {
+			type: 'LEAVE',
+			data:{
+				room_id: room_id,
+				player_id: $user.id
+			}
+		};
+		sendmessage(message);
+
+		const unsubscribe = room.subscribe((value) => {
+			if (value == null)
+			{
+				unsubscribe();
+				goto('/');
+			}
+		});
 	}
 
-	onMount(() => {
+	function StartGame()
+	{
+		if (is_host)
+		{
+			const message: StartMessage = {
+				type: 'START',
+				data:{
+					room_id: room_id,
+					user_id: $user.id
+				}
+			};
+			sendmessage(message);
+		}
+	}
+	
+	function AttemptGuess()
+	{
+		const message: GuessMessage = {
+			type: 'GUESS',
+			data:{
+				room_id: room_id,
+				user_id: $user.id,
+				title_guess: current_guess_title,
+				artist_guess: current_guess_artist
+			}
+		};
+		sendmessage(message);
+	}
+
+	function onKeydown(event: KeyboardEvent)
+    {
+        if (event.key === 'Enter')
+        {
+            AttemptGuess();
+        }
+
+        // Select input
+        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft')
+        {
+            title_input_selected = !title_input_selected;
+            if (title_input_selected)
+            {
+                title_input.focus();
+            }
+            else
+            {
+                artist_input.focus();
+            }
+        }
+    }   
+
+	onMount(async () => {
+        let { SendMessage } = await import('$lib/websocket');
+        sendmessage = SendMessage;
+
 		if ($room == null)
 		{
-			goto('/');
+			if ($user == null)
+			{
+				goto('/');
+				return;
+			}
+
+			const message: JoinResponse = {
+				type: 'JOIN',
+				data:{
+					room_id: room_id,
+					player_id: $user.id,
+					player_name: $user.username
+				}
+			};
+			sendmessage(message);
+
+			const unsubscribe = room.subscribe((value) => {
+				if (value != null)
+				{
+					unsubscribe();
+					is_host = value.host_player_id == $user.id;
+					loading = false;
+				}
+				else
+				{
+					goto('/');
+				}
+			});
+
 			return;
 		}
+		else
+		{
+			is_host = $room.host_player_id == $user.id;
+			loading = false;
+		}
 	});
-
 </script>
 
-<svelte:window on:beforeunload={LeaveRoom} />
-<h1>{$page.params.room_id}</h1>
+<svelte:window on:beforeunload={LeaveRoom} on:keydown={onKeydown}/>
+{#if loading}
+	<p>Loading...</p>
+{:else}
+	{#if $room}
+		{#if !$room.playing}
+			{#each $room.players as player}
+				<p transition:slide>{player.name}</p>
+			{/each}
+
+			{#if is_host}
+				<button class="btn btn-primary" on:click={StartGame}>Start Game</button>	
+			{/if}
+
+			<button class="btn btn-primary" on:click={LeaveRoom}>Leave Room</button>
+		{:else}
+			<div class="hero min-h-screen bg-base-200">
+				<div class="hero-content flex lg:flex-row-reverse">
+					<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
+						<span class="countdown font-mono text-5xl">
+						<span style={`--value:${player?.score};`}></span>
+						</span>
+						score
+					</div>
+					<div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+						<div class="card-body">
+							<div class="flex flex-col space-y-2 w-80">
+								{#if $room.currently_guessed && $room.covers[$room.index].title && $room.covers[$room.index].artist}
+									<div class="flex flex-row space-x-2" transition:slide>
+										<h2 class="text-2xl font-bold underline">{$room.covers[$room.index].title}</h2>
+										<h3 class="text-2xl font-bold">by {$room.covers[$room.index].artist}</h3>
+									</div>
+								{/if}
+								<div class="h-80 w-80">
+									<Cover cover={$room.covers[$room.index]} pixelate={!$room.currently_guessed} />
+								</div>
+								{#if !$room.currently_guessed}
+									<div class="w-full flex flex-row space-x-2">
+										<div class="form-control w-1/2">
+											<label class="label">
+												<input class="hidden"/>
+												<span class="label-text">Title</span>
+											</label>
+											<input bind:this={title_input} bind:value={current_guess_title} type="text" placeholder="..." class="input input-bordered w-full" />
+										</div>
+										<div class="form-control w-1/2">
+											<label class="label">
+												<input class="hidden"/>
+												<span class="label-text">Artist</span>
+											</label>
+											<input bind:this={artist_input} bind:value={current_guess_artist} type="text" placeholder="..." class="input input-bordered w-full" />
+										</div>
+									</div>
+								{/if}
+								{#if $room.timer}
+									{$room.timer.time}
+								{/if}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>		  
+		{/if}
+	{/if}
+{/if}
 

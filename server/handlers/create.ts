@@ -22,8 +22,10 @@ export function CreateRoom(ws: WebSocket, data: CreateMessage) {
         currently_guessed: false,
         case_sensitive: false,
         allow_misspelling: 0,
-        replace_special_chars: false,
-        time_to_answer_after_first_guess: 0
+        playing: false,
+        timer: null,
+        replace_special_chars: true,
+        time_to_answer_after_first_guess: 3
     };
     
     console.log(`${host.id} created room ${room_id}`);

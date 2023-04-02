@@ -12,15 +12,14 @@ ws.onopen = () => {
 
 ws.onmessage = (event) => {
     const data: Message = JSON.parse(event.data) as Message;
+    console.log('received message: ', data);
     switch (data.type) {
         case 'UPDATE':
             room.set(data.data.room);
             break;
         case 'ERROR':
-            console.log('received error: ', data);
             break;
         default:
-            console.log('received unknown message: ', data);
             break;
     }
 }
