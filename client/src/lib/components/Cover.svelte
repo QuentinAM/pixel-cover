@@ -5,6 +5,7 @@
 
     export let cover: CoverType;
     export let pixelate: boolean = true;
+    export let pixelate_factor: number;
 
     let image_uri: string = cover.link;
     let loading = true;
@@ -13,7 +14,7 @@
     onMount(() => {
         if (pixelate)
         {
-            PixelateImage(cover.link, 10, (uri: string) => {
+            PixelateImage(cover.link, pixelate_factor, (uri: string) => {
                 image_uri = uri;
                 loading = false;
             });
@@ -32,7 +33,7 @@
     }
     else if (loaded_once)
     {
-        PixelateImage(cover.link, 10, (uri: string) => {
+        PixelateImage(cover.link, pixelate_factor, (uri: string) => {
             image_uri = uri;
             loading = false;
         });

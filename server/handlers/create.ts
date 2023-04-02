@@ -25,7 +25,8 @@ export function CreateRoom(ws_: WebSocket, data: CreateMessage) {
         last_guess: '',
         replace_special_chars: true,
         spectators: [],
-        time_to_answer_after_first_guess: 3
+        time_to_answer_after_first_guess: 3,
+        pixelate_factor: 40
     };
     const ws_obj: WebSocketPlayer = {
         ws: ws_,

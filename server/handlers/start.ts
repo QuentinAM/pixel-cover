@@ -47,18 +47,7 @@ export function StartRoom(ws: WebSocket, data: StartMessage) {
     room.playing = true;
 
     // Fill covers
-    room.covers = [
-        {
-            link: 'https://i.scdn.co/image/ab67616d00001e02e5fb8425dfe7771f698113b7',
-            title: 'NOVAE',
-            artist: 'Yvnnis'
-        },
-        {
-            link: 'https://i.scdn.co/image/ab67616d00001e02550b4528f31fd28007a97ab9',
-            title: 'LA COURSE',
-            artist: 'NES'
-        }
-    ];
+    room.covers = data.data.covers;
     rooms.set(room_id, room);
 
     UpdateRoom(room_id, room);

@@ -4,6 +4,7 @@
 	import { room, user } from '$lib/store';
     import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
+	import type { Cover as CoverType } from '$lib/websocket/types';
     import type { GuessMessage, JoinResponse, LeaveMessage, NextMessage, StartMessage } from '$lib/websocket/types';
     import Cover from '$lib/components/Cover.svelte';
 
@@ -18,6 +19,23 @@
     let artist_input: any;
     let current_guess_title: string = '';
     let current_guess_artist: string = '';
+
+	// Settings
+	let covers_input: CoverType[] = [
+        {
+            link: 'https://i.scdn.co/image/ab67616d00001e02e5fb8425dfe7771f698113b7',
+            title: 'NOVAE',
+            artist: 'Yvnnis'
+        },
+        {
+            link: 'https://i.scdn.co/image/ab67616d00001e02550b4528f31fd28007a97ab9',
+            title: 'LA COURSE',
+            artist: 'NES'
+        }
+    ];
+	let setting_cover_link: string = '';
+	let setting_cover_title: string = '';
+	let setting_cover_artist: string = '';
 
 	// Updated value
 	$: player = $room?.players.find((player) => player.id == $user.id);
@@ -51,7 +69,8 @@
 				type: 'START',
 				data:{
 					room_id: room_id,
-					user_id: $user.id
+					user_id: $user.id,
+					covers: covers_input
 				}
 			};
 			sendmessage(message);
@@ -109,6 +128,24 @@
         }
     }   
 
+	// Settings
+	function AddCover()
+	{
+		if (setting_cover_link == '' || setting_cover_title == '' || setting_cover_artist == '')
+		{
+			return;
+		}
+		covers_input = [...covers_input, {link: setting_cover_link, title: setting_cover_title, artist: setting_cover_artist}];
+		setting_cover_link = '';
+		setting_cover_artist = '';
+		setting_cover_title = '';
+	}
+
+	function DeleteCover(link: string)
+	{
+		covers_input = covers_input.filter((cover) => cover.link != link);
+	}
+
 	onMount(async () => {
         let { SendMessage } = await import('$lib/websocket');
         sendmessage = SendMessage;
@@ -160,20 +197,124 @@
 {#if loading}
 	<p>Loading...</p>
 {:else}
-	{#if $room}
-		{#if !$room.playing}
-			{#each $room.players as player}
-				<p transition:slide>{player.name}</p>
-			{/each}
+	<div class="hero min-h-screen bg-base-200 relative">
+		<div class="hero-content flex w-full">
+			{#if $room}
+				{#if !$room.playing}
+					<div class="absolute left-2 rounded p-3 shadow shadow-black">
+						{#each $room.players as player}
+							<p transition:slide>{player.name}</p>
+						{/each}
+					</div>
 
-			{#if is_host}
-				<button class="btn btn-primary" on:click={StartGame}>Start Game</button>	
-			{/if}
+					{#if is_host}
+						<div class="shadow shadow-black p-3 bg-base-100 space-y-2 w-3/4">
+							<h1 class="text-base font-semibold">Settings</h1>
+							<div class="divider divider-vertical"></div>
+							<div class="space-y-1 flex flex-row">
+								<div class="w-1/2 space-y-2">
+									<h1 class="text-base font-medium">Covers</h1>
+									<div class="overflow-x-auto w-full shadow shadow-black rounded overflow-y-auto max-h-64">
+										<table class="table w-full">
+											<!-- head -->
+											<thead>
+												<tr>
+												<th>Cover</th>
+												<th>Title</th>
+												<th>Artist</th>
+												<th></th>
+												</tr>
+											</thead>
+											<tbody>
+												<!-- row 1 -->
 
-			<button class="btn btn-primary" on:click={LeaveRoom}>Leave Room</button>
-		{:else}
-			<div class="hero min-h-screen bg-base-200">
-				<div class="hero-content flex lg:flex-row-reverse">
+												{#each covers_input as cover}
+													<tr>
+														<td>
+															<div class="avatar">
+															<div class="mask mask-squircle w-12 h-12">
+																<img src={cover.link} alt="Avatar Tailwind CSS Component" />
+															</div>
+															</div>
+														</td>
+														<td>{cover.title}</td>
+														<td>{cover.artist}</td>
+														<th>
+															<button on:click={() => DeleteCover(cover.link)} class="btn btn-error btn-xs">Delete</button>
+														</th>
+													</tr>
+												{/each}
+											</tbody>
+										</table>
+									</div>
+									<div class="shadow shadow-black p-3 rounded space-y-2">
+										<h1 class="text-base font-light">Add cover</h1>
+										<div class="form-control w-full">
+											<label class="label">
+												<input class="hidden"/>
+												<span class="label-text">Link</span>
+											</label>
+											<input bind:value={setting_cover_link} type="text" placeholder="..." class="input input-bordered w-full" />
+										</div>
+										<div class="flex flex-row w-full space-x-2">
+											<div class="form-control w-1/2">
+												<label class="label">
+													<input class="hidden"/>
+													<span class="label-text">Title</span>
+												</label>
+												<input bind:value={setting_cover_title} type="text" placeholder="..." class="input input-bordered w-full" />
+											</div>
+											<div class="form-control w-1/2">
+												<label class="label">
+													<input class="hidden"/>
+													<span class="label-text">Artist</span>
+												</label>
+												<input bind:value={setting_cover_artist} type="text" placeholder="..." class="input input-bordered w-full" />
+											</div>
+										</div>
+										<button class="btn btn-primary w-full" on:click={AddCover}>Add</button>
+									</div>
+								</div>
+								<div class="divider divider-horizontal"></div>
+								<div class="w-1/2 space-y-2">
+									<h1 class="text-base font-medium">Global params</h1>
+									<div class="form-control">
+										<label class="label cursor-pointer">
+											<span class="label-text">Case sensitive</span> 
+											<input bind:checked={$room.case_sensitive} type="checkbox" class="toggle" />
+										</label>
+									</div>
+									<div class="form-control">
+										<label class="label cursor-pointer">
+											<span class="label-text">Replace special chars</span> 
+											<input bind:checked={$room.replace_special_chars} type="checkbox" class="toggle" />
+										</label>
+									</div>
+									<div class="form-control w-full">
+										<label class="label">
+											<input class="hidden"/>
+											<span class="label-text">Pixelate factor ({$room.pixelate_factor} px)</span>
+										</label>
+										<input bind:value={$room.pixelate_factor} type="range" min="2" max="100" class="range" step="1" />
+									</div>
+									<div class="form-control w-full">
+										<label class="label">
+											<input class="hidden"/>
+											<span class="label-text">Time to guess after first</span>
+										</label>
+										<input bind:value={$room.time_to_answer_after_first_guess} type="number" min="0" max="60" class="input input-primary" />
+									</div>
+								</div>
+							</div>
+						</div>
+						<div>
+							<button class="btn btn-primary" on:click={StartGame}>Start Game</button>
+							<button class="btn btn-primary" on:click={LeaveRoom}>Leave Room</button>
+						</div>
+					{:else}
+						<button class="btn btn-primary" on:click={LeaveRoom}>Leave Room</button>
+					{/if}
+				{:else}
 					<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
 						<span class="countdown font-mono text-5xl">
 						<span style={`--value:${player?.score};`}></span>
@@ -193,7 +334,7 @@
 										</div>
 									{/if}
 									<div class="h-80 w-80">
-										<Cover cover={$room.covers[$room.index]} pixelate={!$room.currently_guessed} />
+										<Cover cover={$room.covers[$room.index]} pixelate={!$room.currently_guessed} pixelate_factor={$room.pixelate_factor} />
 									</div>
 									{#if !$room.currently_guessed && !is_spec}
 										<div class="w-full flex flex-row space-x-2">
@@ -213,9 +354,6 @@
 											</div>
 										</div>
 									{/if}
-									{#if $room.timer}
-										{$room.timer.time}
-									{/if}
 									{#if $room.currently_guessed && is_host}
 										<button class="btn btn-primary" on:click={NextRound}>Next Round</button>
 									{/if}
@@ -223,9 +361,9 @@
 							</div>
 						</div>
 					</div>
-				</div>
-			</div>		  
-		{/if}
-	{/if}
+				{/if}
+			{/if}
+		</div>
+	</div>		  
 {/if}
 
