@@ -88,6 +88,13 @@ export interface Cover {
     link: string;
     title: string;
     artist: string;
+    first_to_found_id: string;
+    others_to_found_id: string[];
+}
+
+export interface Log {
+    message: string;
+    date: string;
 }
 
 export interface Room {
@@ -97,6 +104,9 @@ export interface Room {
     spectators: Player[];
     covers: Cover[];
     playing: boolean;
+
+    // Logs
+    logs: Log[];
 
     // Guess management
     index: number; // Index of the current cover

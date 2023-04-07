@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { NextMessage } from "../types";
+import type { Log, NextMessage } from "../types";
 import { rooms } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -46,6 +46,12 @@ export function NextRound(ws: WebSocket, data: NextMessage) {
         ws.send(JSON.stringify(error));
         return;
     }
+
+    const next_log: Log = {
+        message: `${player.name} started the next round`,
+        date: new Date().toLocaleString()
+    }
+    room.logs.push(next_log);
 
     room.index += 1;
     room.currently_guessed = false;

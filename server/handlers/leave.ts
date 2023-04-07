@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { Room, Player, LeaveMessage } from "../types";
+import type { Room, Player, LeaveMessage, Log } from "../types";
 import { rooms, wsStore } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -50,5 +50,12 @@ export function LeaveRoom(ws: WebSocket, data: LeaveMessage) {
         wsList = wsList.filter(ws => ws.id !== player_id);
         wsStore.set(room_id, wsList);
     }
+
+    const leave_log: Log = {
+        message: `${player.name} left the room`,
+        date: new Date().toLocaleString()
+    };
+    room.logs.push(leave_log);
+
     UpdateRoom(room_id, room);
 }

@@ -7,6 +7,8 @@
 	import type { Cover as CoverType } from '$lib/websocket/types';
     import type { GuessMessage, JoinResponse, LeaveMessage, NextMessage, StartMessage } from '$lib/websocket/types';
     import Cover from '$lib/components/Cover.svelte';
+	import LeaderBoard from '$lib/components/LeaderBoard.svelte';
+	import Logs from '$lib/components/Logs.svelte';
 
 	const room_id = $page.params.room_id;
 	let is_host: boolean = false;
@@ -25,12 +27,16 @@
         {
             link: 'https://i.scdn.co/image/ab67616d00001e02e5fb8425dfe7771f698113b7',
             title: 'NOVAE',
-            artist: 'Yvnnis'
+            artist: 'Yvnnis',
+			first_to_found_id: '',
+			others_to_found_id: []
         },
         {
             link: 'https://i.scdn.co/image/ab67616d00001e02550b4528f31fd28007a97ab9',
             title: 'LA COURSE',
-            artist: 'NES'
+            artist: 'NES',
+			first_to_found_id: '',
+			others_to_found_id: []
         }
     ];
 	let setting_cover_link: string = '';
@@ -135,7 +141,15 @@
 		{
 			return;
 		}
-		covers_input = [...covers_input, {link: setting_cover_link, title: setting_cover_title, artist: setting_cover_artist}];
+		covers_input = [...covers_input, 
+			{
+				link: setting_cover_link,
+				title: setting_cover_title,
+				artist: setting_cover_artist,
+				first_to_found_id: '',
+				others_to_found_id: []
+			}
+		];
 		setting_cover_link = '';
 		setting_cover_artist = '';
 		setting_cover_title = '';
@@ -200,6 +214,9 @@
 	<div class="hero min-h-screen bg-base-200 relative">
 		<div class="hero-content flex w-full">
 			{#if $room}
+				<div class="absolute bottom-2 right-2">
+					<Logs/>
+				</div>
 				{#if !$room.playing}
 					<div class="absolute left-2 rounded p-3 shadow shadow-black">
 						{#each $room.players as player}
@@ -315,6 +332,9 @@
 						<button class="btn btn-primary" on:click={LeaveRoom}>Leave Room</button>
 					{/if}
 				{:else}
+					<div class="absolute top-2 right-2">
+						<LeaderBoard/>
+					</div>
 					<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
 						<span class="countdown font-mono text-5xl">
 						<span style={`--value:${player?.score};`}></span>

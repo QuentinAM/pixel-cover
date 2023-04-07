@@ -20,6 +20,7 @@
                 host_id: id
             }
         };
+        user.set({ id, username });
         sendmessage(message);
     }
 
@@ -33,6 +34,7 @@
                 player_name: username
             }
         };
+        user.set({ id, username });
         sendmessage(message);
     }
 

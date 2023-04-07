@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { Room, Player, CreateMessage, WebSocketPlayer } from "../types";
+import type { Room, Player, CreateMessage, WebSocketPlayer, Log } from "../types";
 import { rooms, wsStore } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -26,12 +26,19 @@ export function CreateRoom(ws_: WebSocket, data: CreateMessage) {
         replace_special_chars: true,
         spectators: [],
         time_to_answer_after_first_guess: 3,
-        pixelate_factor: 40
+        pixelate_factor: 40,
+        logs: []
     };
     const ws_obj: WebSocketPlayer = {
         ws: ws_,
         id: host.id
     }
+    const create_log: Log = {
+        message: `${host.name} created the room`,
+        date: new Date().toLocaleString()
+    }
+    room.logs.push(create_log);
+
     wsStore.set(room_id, [ws_obj]);
     
     console.log(`${host.id} created room ${room_id}`);

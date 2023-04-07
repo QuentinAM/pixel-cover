@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { Player, JoinResponse, UpdateResponse } from "../types";
+import type { Player, JoinResponse, UpdateResponse, Log } from "../types";
 import { rooms, wsStore } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -74,6 +74,12 @@ export function JoinRoom(ws_obj: WebSocket, data: JoinResponse) {
         console.log(`Room ${room_id} does not exist in wsStore`);
         return;
     }
+
+    const join_log: Log = {
+        message: `${player_name} joined the room`,
+        date: new Date().toLocaleString()
+    }
+    room.logs.push(join_log);
 
     UpdateRoom(room_id, room);
 }

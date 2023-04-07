@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { Room, Player, CreateMessage, GuessMessage } from "../types";
+import type { Room, Player, CreateMessage, GuessMessage, Log } from "../types";
 import { rooms } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -61,6 +61,15 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
     console.log(`Player ${player_id} guessing ${data.data.artist_guess} - ${data.data.title_guess} in room ${room_id}`);
     if (IsGuessCorrect(room, data.data.artist_guess, data.data.title_guess)) {
         console.log(`Player ${player_id} guessed correctly in room ${room_id}`);
+
+        const guess_log: Log = {
+            message: `${player.name} guessed correctly`,
+            date: new Date().toLocaleString()
+        }
+        room.logs.push(guess_log);
+
+        room.covers[room.index].first_to_found_id = player_id;
+
         room.currently_guessed = true;
         room.players.find(player => player.id === player_id)!.score += 1;
         UpdateRoom(room_id, room);

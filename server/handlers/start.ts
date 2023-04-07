@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { Room, Player, CreateMessage, StartMessage } from "../types";
+import type { Room, Player, CreateMessage, StartMessage, Log } from "../types";
 import { rooms } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -45,6 +45,12 @@ export function StartRoom(ws: WebSocket, data: StartMessage) {
 
     // Start the game
     room.playing = true;
+
+    const start_log: Log = {
+        message: `${player.name} started the game`,
+        date: new Date().toLocaleString()
+    }
+    room.logs.push(start_log);
 
     // Fill covers
     room.covers = data.data.covers;
