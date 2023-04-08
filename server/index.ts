@@ -16,12 +16,8 @@ wss.on('listening', () => {
 });
 
 wss.on('connection', function connection(ws) {
-    console.log('connection established');
     ws.on('message', function message(message) {
-
         const data = JSON.parse(message.toString()) as Message;
-        console.log('message received: ', data.type);
-        
         switch (data.type) {
             case 'CREATE':
                 CreateRoom(ws, data as CreateMessage);

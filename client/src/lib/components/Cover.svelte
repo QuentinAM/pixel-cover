@@ -5,7 +5,7 @@
 
     export let cover: CoverType;
     export let pixelate: boolean = true;
-    export let pixelate_factor: number;
+    export let pixelate_factor: number = 0.1; 
 
     let image_uri: string = cover.link;
     let loading = true;

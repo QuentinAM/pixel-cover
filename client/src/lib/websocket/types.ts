@@ -52,6 +52,13 @@ export interface StartMessage extends Message {
         room_id: string;
         user_id: string;
         covers: Cover[];
+
+        // Settings
+        case_sensitive: boolean;
+        allow_misspelling: number;
+        replace_special_chars: boolean;
+        time_to_answer_after_first_guess: number;
+        pixelate_factor: number;
     }
 }
 
@@ -110,7 +117,7 @@ export interface Room {
 
     // Guess management
     index: number; // Index of the current cover
-    last_guess: string; // Date
+    last_guess: string | null; // Date
     currently_guessed: boolean; // Has someone guessed the cover, only true during timer
 
     // Settings

@@ -58,19 +58,71 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
     }
 
     // Check if guess is correct
-    console.log(`Player ${player_id} guessing ${data.data.artist_guess} - ${data.data.title_guess} in room ${room_id}`);
-    if (IsGuessCorrect(room, data.data.artist_guess, data.data.title_guess)) {
+   if (IsGuessCorrect(room, data.data.artist_guess, data.data.title_guess)) {
         console.log(`Player ${player_id} guessed correctly in room ${room_id}`);
+
+        if (room.last_guess == null)
+        {
+            const guess_log: Log = {
+                message: `${player.name} guessed correctly in first !`,
+                date: new Date().toLocaleString()
+            }
+            room.logs.push(guess_log);
+
+            room.covers[room.index].first_to_found_id = player_id;
+            room.last_guess = new Date().toDateString();
+            
+            console.log(`Setting timeout for room ${room_id} to ${room.time_to_answer_after_first_guess} seconds`);
+            setTimeout(() => {
+                console.log(`Timeout for room ${room_id} has been reached`);
+                if (!room) return;
+                room.currently_guessed = true;
+                UpdateRoom(room_id, room);
+            }, room.time_to_answer_after_first_guess * 1000);
+
+            room.players.find(player => player.id === player_id)!.score += 2;
+            
+            UpdateRoom(room_id, room);
+            return;
+        }
+
+        // Check if player already guessed
+        if (room.covers[room.index].others_to_found_id.includes(player_id) || room.covers[room.index].first_to_found_id === player_id) {
+            const error = {
+                type: 'ERROR',
+                data: {
+                    message: `Player ${player_id} already guessed in room ${room_id}`
+                }
+            };
+            ws.send(JSON.stringify(error));
+            return;
+        }
+        
+        // Check that we can still guess
+        const last_guess: Date = new Date(room.last_guess);
+        
+        // Add room.time_to_answer_after_first_guess * 1000 to last_guess
+        last_guess.setSeconds(last_guess.getSeconds() + room.time_to_answer_after_first_guess);
+        const now: Date = new Date();
+        const diff = now.getTime() - last_guess.getTime();
+        console.log(`Diff between now and last guess is ${diff} ms`)
+        if (diff > 0) {
+            const error = {
+                type: 'ERROR',
+                data: {
+                    message: `Too late to guess in room ${room_id}`
+                }
+            };
+            ws.send(JSON.stringify(error));
+            return;
+        }
 
         const guess_log: Log = {
             message: `${player.name} guessed correctly`,
             date: new Date().toLocaleString()
         }
         room.logs.push(guess_log);
-
-        room.covers[room.index].first_to_found_id = player_id;
-
-        room.currently_guessed = true;
+        room.covers[room.index].others_to_found_id.push(player_id);
         room.players.find(player => player.id === player_id)!.score += 1;
         UpdateRoom(room_id, room);
     }
@@ -101,8 +153,6 @@ function IsGuessCorrect(room: Room, artist_guess: string, title_guess: string)
     }
 
     // Check for levenstein distance
-    console.log(`Artist guess: ${artist_guess}, artist answer: ${artist_answer}`);
-    console.log(`Title guess: ${title_guess}, title answer: ${title_answer}`);
     return artist_guess === artist_answer && title_guess === title_answer;
 }
 

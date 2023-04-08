@@ -4,11 +4,12 @@
 	import { room, user } from '$lib/store';
     import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
-	import type { Cover as CoverType } from '$lib/websocket/types';
+	import type { Cover as CoverType, Room } from '$lib/websocket/types';
     import type { GuessMessage, JoinResponse, LeaveMessage, NextMessage, StartMessage } from '$lib/websocket/types';
     import Cover from '$lib/components/Cover.svelte';
 	import LeaderBoard from '$lib/components/LeaderBoard.svelte';
 	import Logs from '$lib/components/Logs.svelte';
+	import Recap from '$lib/components/Recap.svelte';
 
 	const room_id = $page.params.room_id;
 	let is_host: boolean = false;
@@ -46,7 +47,9 @@
 	// Updated value
 	$: player = $room?.players.find((player) => player.id == $user.id);
 	$: game_ended = $room?.index == $room?.covers.length;
-
+	$: time_left_to_answer = TimeLeftToAnswer($room);
+	$: has_guessed = $room?.last_guess && ($room?.covers[$room.index].first_to_found_id == $user.id || $room?.covers[$room.index].others_to_found_id.includes($user.id));
+	
 	function LeaveRoom()
 	{
 		const message: LeaveMessage = {
@@ -69,14 +72,20 @@
 
 	function StartGame()
 	{
-		if (is_host)
+		if (is_host && $room)
 		{
 			const message: StartMessage = {
 				type: 'START',
 				data:{
 					room_id: room_id,
 					user_id: $user.id,
-					covers: covers_input
+					covers: covers_input,
+					// Settings
+					case_sensitive: $room.case_sensitive,
+					allow_misspelling: $room.allow_misspelling,
+					replace_special_chars: $room.replace_special_chars,
+					time_to_answer_after_first_guess: $room.time_to_answer_after_first_guess,
+					pixelate_factor: $room.pixelate_factor
 				}
 			};
 			sendmessage(message);
@@ -155,6 +164,19 @@
 		setting_cover_title = '';
 	}
 
+	function TimeLeftToAnswer(r: Room | null)
+	{
+		if (r && r.last_guess)
+		{
+			const last_guess: Date= new Date(r.last_guess);
+			const limit: Date = new Date(last_guess.getTime() + r.time_to_answer_after_first_guess * 1000);
+			const now: Date = new Date();
+			const diff = limit.getTime() - now.getTime();
+			return Math.max(-1, Math.floor(diff / 1000));
+		}
+		return -1;
+	}
+
 	function DeleteCover(link: string)
 	{
 		covers_input = covers_input.filter((cover) => cover.link != link);
@@ -223,7 +245,6 @@
 							<p transition:slide>{player.name}</p>
 						{/each}
 					</div>
-
 					{#if is_host}
 						<div class="shadow shadow-black p-3 bg-base-100 space-y-2 w-3/4">
 							<h1 class="text-base font-semibold">Settings</h1>
@@ -341,11 +362,19 @@
 						</span>
 						score
 					</div>
+					{#if time_left_to_answer != -1}
+						<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
+							<span class="countdown font-mono text-5xl">
+							<span style={`--value:${time_left_to_answer};`}></span>
+							</span>
+							time left
+						</div>
+					{/if}
 					<div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
 						<div class="card-body">
 							<div class="flex flex-col space-y-2 w-80">
 								{#if game_ended}
-									<h1>GG wp</h1>
+									<Recap/>
 								{:else}
 									{#if $room.currently_guessed && $room.covers[$room.index].title && $room.covers[$room.index].artist}
 										<div class="flex flex-row space-x-2" transition:slide>
@@ -363,14 +392,14 @@
 													<input class="hidden"/>
 													<span class="label-text">Title</span>
 												</label>
-												<input bind:this={title_input} bind:value={current_guess_title} type="text" placeholder="..." class="input input-bordered w-full" />
+												<input disabled={has_guessed ? has_guessed : false} bind:this={title_input} bind:value={current_guess_title} type="text" placeholder="..." class="input input-bordered w-full" />
 											</div>
 											<div class="form-control w-1/2">
 												<label class="label">
 													<input class="hidden"/>
 													<span class="label-text">Artist</span>
 												</label>
-												<input bind:this={artist_input} bind:value={current_guess_artist} type="text" placeholder="..." class="input input-bordered w-full" />
+												<input disabled={has_guessed ? has_guessed : false} bind:this={artist_input} bind:value={current_guess_artist} type="text" placeholder="..." class="input input-bordered w-full" />
 											</div>
 										</div>
 									{/if}
