@@ -3,7 +3,7 @@ import type { Room, Player, CreateMessage, StartMessage, Log } from "../types";
 import { rooms } from "../index";
 import { UpdateRoom } from "../update";
 
-export function StartRoom(ws: WebSocket, data: StartMessage) {
+export async function StartRoom(ws: WebSocket, data: StartMessage) {
     
     // Check if room exists
     const room_id = data.data.room_id;
@@ -59,9 +59,11 @@ export function StartRoom(ws: WebSocket, data: StartMessage) {
     }
     room.logs.push(start_log);
 
-    // Fill covers
+    // Fill pixelated covers 
+    let covers = data.data.covers;
+    room.real_covers = data.data.real_covers;
     room.covers = data.data.covers;
+    
     rooms.set(room_id, room);
-
     UpdateRoom(room_id, room);
 }

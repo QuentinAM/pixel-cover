@@ -52,6 +52,7 @@ export interface StartMessage extends Message {
         room_id: string;
         user_id: string;
         covers: Cover[];
+        real_covers: CoverType[];
 
         // Settings
         case_sensitive: boolean;
@@ -110,6 +111,7 @@ export interface Room {
     players: Player[];
     spectators: Player[];
     covers: Cover[];
+    real_covers: CoverType[];
     playing: boolean;
 
     // Logs
@@ -126,4 +128,10 @@ export interface Room {
     replace_special_chars: boolean;
     time_to_answer_after_first_guess: number;
     pixelate_factor: number;
+}
+
+export interface CoverType {
+    link: string;
+    title: string;
+    artist: string;
 }

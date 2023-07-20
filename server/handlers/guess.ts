@@ -76,6 +76,11 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
             setTimeout(() => {
                 console.log(`Timeout for room ${room_id} has been reached`);
                 if (!room) return;
+
+                // Switch back to normal cover
+                console.log(`Putting back cover to normal as the timeout has been reached to reveal the anwser in room ${room_id}`);
+                room.covers[room.index].link = room.real_covers[room.index].link;
+
                 room.currently_guessed = true;
                 UpdateRoom(room_id, room);
             }, room.time_to_answer_after_first_guess * 1000);

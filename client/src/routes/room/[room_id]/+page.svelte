@@ -10,6 +10,7 @@
 	import LeaderBoard from '$lib/components/LeaderBoard.svelte';
 	import Logs from '$lib/components/Logs.svelte';
 	import Recap from '$lib/components/Recap.svelte';
+    import { PixelateCovers } from '$lib/utils/pixelate';
 
 	const room_id = $page.params.room_id;
 	let is_host: boolean = false;
@@ -70,16 +71,23 @@
 		});
 	}
 
-	function StartGame()
+	async function StartGame()
 	{
 		if (is_host && $room)
 		{
+			// Create pixelated covers
+			console.log('Pixelating covers');
+			const covers = await PixelateCovers(covers_input, $room.pixelate_factor);
+			console.log('Pixelated covers');
+
 			const message: StartMessage = {
 				type: 'START',
 				data:{
 					room_id: room_id,
 					user_id: $user.id,
-					covers: covers_input,
+					covers: covers,
+					real_covers: covers_input,
+
 					// Settings
 					case_sensitive: $room.case_sensitive,
 					allow_misspelling: $room.allow_misspelling,
@@ -129,18 +137,18 @@
         }
 
         // Select input
-        if (event.key === 'ArrowRight' || event.key === 'ArrowLeft')
-        {
-            title_input_selected = !title_input_selected;
-            if (title_input_selected)
-            {
-                title_input.focus();
-            }
-            else
-            {
-                artist_input.focus();
-            }
-        }
+        // if (event.key === 'ArrowRight' || event.key === 'ArrowLeft')
+        // {
+        //     title_input_selected = !title_input_selected;
+        //     if (title_input_selected)
+        //     {
+        //         title_input.focus();
+        //     }
+        //     else
+        //     {
+        //         artist_input.focus();
+        //     }
+        // }
     }   
 
 	// Settings
@@ -383,7 +391,7 @@
 										</div>
 									{/if}
 									<div class="h-80 w-80">
-										<Cover cover={$room.covers[$room.index]} pixelate={!$room.currently_guessed} pixelate_factor={$room.pixelate_factor} />
+										<Cover cover={$room.covers[$room.index]} />
 									</div>
 									{#if !$room.currently_guessed && !is_spec}
 										<div class="w-full flex flex-row space-x-2">

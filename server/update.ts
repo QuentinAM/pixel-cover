@@ -5,7 +5,7 @@ export function UpdateRoom(room_id: string, room_data: Room) {
     // Update room
     rooms.set(room_id, room_data);
 
-    const room_copy = JSON.parse(JSON.stringify(room_data));
+    const room_copy: Room = JSON.parse(JSON.stringify(room_data));
     
     // Remove all title and artist from not guessed yet
     for (let i = room_copy.covers.length - 1; i >= room_copy.index; i--) {
@@ -15,6 +15,11 @@ export function UpdateRoom(room_id: string, room_data: Room) {
         }
         room_copy.covers[i].title = '';
         room_copy.covers[i].artist = '';
+
+        // As well as real covers
+        room_copy.real_covers[i].title = '';
+        room_copy.real_covers[i].artist = '';
+        room_copy.real_covers[i].link = '';
     }
 
     const response: UpdateResponse = {

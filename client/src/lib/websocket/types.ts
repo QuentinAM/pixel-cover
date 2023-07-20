@@ -1,3 +1,4 @@
+import type { CoverType } from "$lib/type";
 import { WebSocket } from "ws";
 
 export type MessageType = 'CREATE' | 'UPDATE' | 'JOIN' | 'LEAVE' | 'ERROR' | 'START' | 'GUESS' | 'NEXT';
@@ -52,6 +53,7 @@ export interface StartMessage extends Message {
         room_id: string;
         user_id: string;
         covers: Cover[];
+        real_covers: CoverType[];
 
         // Settings
         case_sensitive: boolean;
@@ -110,6 +112,7 @@ export interface Room {
     players: Player[];
     spectators: Player[];
     covers: Cover[];
+    real_covers: CoverType[];
     playing: boolean;
 
     // Logs
