@@ -3,6 +3,10 @@ import type { Cover } from "$lib/websocket/types";
 
 export async function PixelateImage(url: any, pixelate_factor: number, callback: any)
 {
+    if (pixelate_factor <= 0) {
+        pixelate_factor = 1;
+    }
+
     const response = await fetch(url);
     const blob = await response.blob();
     const img = new Image();

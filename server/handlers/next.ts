@@ -54,7 +54,7 @@ export function NextRound(ws: WebSocket, data: NextMessage) {
     room.logs.push(next_log);
 
     room.index += 1;
-    room.last_guess = null;
+    room.first_guess = null;
     room.currently_guessed = false;
     room.can_still_guess = true;
     UpdateRoom(room_id, room);

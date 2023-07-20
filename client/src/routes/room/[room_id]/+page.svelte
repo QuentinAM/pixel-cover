@@ -24,6 +24,9 @@
     let current_guess_title: string = '';
     let current_guess_artist: string = '';
 
+	let time_left_to_answer_timeout: number | null = null;
+	let timer: number | null = null;
+
 	// Settings
 	let covers_input: CoverType[] = [
         {
@@ -48,8 +51,28 @@
 	// Updated value
 	$: player = $room?.players.find((player) => player.id == $user.id);
 	$: game_ended = $room?.index == $room?.covers.length;
-	$: time_left_to_answer = TimeLeftToAnswer($room);
-	$: has_guessed = $room?.last_guess && ($room?.covers[$room.index].first_to_found_id == $user.id || $room?.covers[$room.index].others_to_found_id.includes($user.id));
+	$: if ($room) 
+	{
+		if (time_left_to_answer_timeout && !$room.first_guess)
+		{
+			clearTimeout(time_left_to_answer_timeout);
+			timer = null;
+			time_left_to_answer_timeout = null;
+		}
+		else if (!time_left_to_answer_timeout && $room.first_guess)
+		{
+			timer = $room.time_to_answer_after_first_guess - 1;
+			console.log(timer);
+			time_left_to_answer_timeout = setInterval(() => {
+				if (timer)
+				{
+					timer--;
+				}
+			}, 1000);
+		}
+	}
+
+	$: has_guessed = $room?.first_guess && ($room?.covers[$room.index].first_to_found_id == $user.id || $room?.covers[$room.index].others_to_found_id.includes($user.id));
 
 	function LeaveRoom()
 	{
@@ -76,9 +99,7 @@
 		if (is_host && $room)
 		{
 			// Create pixelated covers
-			console.log('Pixelating covers');
 			const covers = await PixelateCovers(covers_input, $room.pixelate_factor);
-			console.log('Pixelated covers');
 
 			const message: StartMessage = {
 				type: 'START',
@@ -174,12 +195,13 @@
 
 	function TimeLeftToAnswer(r: Room | null)
 	{
-		if (r && r.last_guess)
+		if (r && r.first_guess)
 		{
-			const last_guess: Date= new Date(r.last_guess);
-			const limit: Date = new Date(last_guess.getTime() + r.time_to_answer_after_first_guess * 1000);
+			const first_guess: Date= new Date(r.first_guess);
+			const limit: Date = new Date(first_guess.getTime());
 			const now: Date = new Date();
 			const diff = limit.getTime() - now.getTime();
+			console.log(diff);
 			const res = Math.max(-1, Math.floor(diff / 1000));
 			console.log(res);
 			return res;
@@ -249,6 +271,11 @@
 				<div class="absolute bottom-2 right-2">
 					<Logs/>
 				</div>
+				<!-- <div class="absolute top-5 right-5"> -->
+					<!-- <span class="countdown font-mono text-6xl">
+						<span style={`--value:${timer};`}></span>
+					</span>
+				</div> -->
 				{#if !$room.playing}
 					<div class="absolute left-2 rounded p-3 shadow shadow-black">
 						{#each $room.players as player}
@@ -372,12 +399,12 @@
 						</span>
 						score
 					</div>
-					{#if time_left_to_answer != -1}
+					{#if timer != null && timer >= 0}
 						<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
 							<span class="countdown font-mono text-5xl">
-							<span style={`--value:${time_left_to_answer};`}></span>
+								<span style={`--value:${timer};`}></span>
 							</span>
-							time left
+							sec left
 						</div>
 					{/if}
 					<div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">

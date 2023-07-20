@@ -32,7 +32,7 @@
                 <div class="collapse-content">
                     <div class="flex flex-row space-x-2">
                         <div class="w-1/2">
-                            <Cover {cover} pixelate={false}/>
+                            <Cover {cover}/>
                         </div>
                         <div class="w-1/2 flex flex-col space-y-1 h-full overflow-y-auto">
                             <p class:text-yellow-400={IsUs(cover.first_to_found_id)} class="text-lg">{GetPlayerById(cover.first_to_found_id).name} - +2</p>

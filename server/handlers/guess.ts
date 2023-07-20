@@ -61,7 +61,7 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
    if (IsGuessCorrect(room, data.data.artist_guess, data.data.title_guess)) {
         console.log(`Player ${player_id} guessed correctly in room ${room_id}`);
 
-        if (room.last_guess == null)
+        if (room.first_guess == null)
         {
             const guess_log: Log = {
                 message: `${player.name} guessed correctly in first !`,
@@ -70,7 +70,7 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
             room.logs.push(guess_log);
 
             room.covers[room.index].first_to_found_id = player_id;
-            room.last_guess = new Date().toDateString();
+            room.first_guess = new Date().toDateString();
             
             console.log(`Setting timeout for room ${room_id} to ${room.time_to_answer_after_first_guess} seconds`);
             setTimeout(() => {

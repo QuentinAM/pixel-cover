@@ -120,7 +120,7 @@ export interface Room {
 
     // Guess management
     index: number; // Index of the current cover
-    last_guess: string | null; // Date
+    first_guess: string | null; // Date
     currently_guessed: boolean; // Has someone guessed the cover, only true during timer
 
     // Settings

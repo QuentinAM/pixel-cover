@@ -22,7 +22,7 @@ export function CreateRoom(ws_: WebSocket, data: CreateMessage) {
         case_sensitive: false,
         allow_misspelling: 0,
         playing: false,
-        last_guess: null,
+        first_guess: null,
         replace_special_chars: true,
         spectators: [],
         time_to_answer_after_first_guess: 3,
