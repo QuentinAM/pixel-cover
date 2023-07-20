@@ -63,6 +63,8 @@ export async function StartRoom(ws: WebSocket, data: StartMessage) {
     let covers = data.data.covers;
     room.real_covers = data.data.real_covers;
     room.covers = data.data.covers;
+
+    room.can_still_guess = true;
     
     rooms.set(room_id, room);
     UpdateRoom(room_id, room);

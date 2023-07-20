@@ -50,7 +50,7 @@
 	$: game_ended = $room?.index == $room?.covers.length;
 	$: time_left_to_answer = TimeLeftToAnswer($room);
 	$: has_guessed = $room?.last_guess && ($room?.covers[$room.index].first_to_found_id == $user.id || $room?.covers[$room.index].others_to_found_id.includes($user.id));
-	
+
 	function LeaveRoom()
 	{
 		const message: LeaveMessage = {
@@ -180,7 +180,9 @@
 			const limit: Date = new Date(last_guess.getTime() + r.time_to_answer_after_first_guess * 1000);
 			const now: Date = new Date();
 			const diff = limit.getTime() - now.getTime();
-			return Math.max(-1, Math.floor(diff / 1000));
+			const res = Math.max(-1, Math.floor(diff / 1000));
+			console.log(res);
+			return res;
 		}
 		return -1;
 	}

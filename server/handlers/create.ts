@@ -28,7 +28,8 @@ export function CreateRoom(ws_: WebSocket, data: CreateMessage) {
         time_to_answer_after_first_guess: 3,
         pixelate_factor: 40,
         logs: [],
-        real_covers: []
+        real_covers: [],
+        can_still_guess: false
     };
     const ws_obj: WebSocketPlayer = {
         ws: ws_,

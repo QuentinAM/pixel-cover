@@ -113,6 +113,7 @@ export interface Room {
     covers: Cover[];
     real_covers: CoverType[];
     playing: boolean;
+    can_still_guess: boolean;
 
     // Logs
     logs: Log[];

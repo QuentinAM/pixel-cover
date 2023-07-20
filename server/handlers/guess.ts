@@ -76,6 +76,7 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
             setTimeout(() => {
                 console.log(`Timeout for room ${room_id} has been reached`);
                 if (!room) return;
+                room.can_still_guess = false;
 
                 // Switch back to normal cover
                 console.log(`Putting back cover to normal as the timeout has been reached to reveal the anwser in room ${room_id}`);
@@ -102,16 +103,9 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
             ws.send(JSON.stringify(error));
             return;
         }
-        
-        // Check that we can still guess
-        const last_guess: Date = new Date(room.last_guess);
-        
-        // Add room.time_to_answer_after_first_guess * 1000 to last_guess
-        last_guess.setSeconds(last_guess.getSeconds() + room.time_to_answer_after_first_guess);
-        const now: Date = new Date();
-        const diff = now.getTime() - last_guess.getTime();
-        console.log(`Diff between now and last guess is ${diff} ms`)
-        if (diff > 0) {
+
+        console.log(`Can still guess ${room.can_still_guess}`)
+        if (!room.can_still_guess) {
             const error = {
                 type: 'ERROR',
                 data: {
