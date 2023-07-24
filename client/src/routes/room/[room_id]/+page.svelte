@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
     import { onMount } from 'svelte';
-	import { room, user } from '$lib/store';
+	import { room, success_msg, user } from '$lib/store';
     import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
 	import type { Cover as CoverType, Room } from '$lib/websocket/types';
@@ -17,6 +17,9 @@
 	let is_spec: boolean = false;
     let sendmessage: any;
 	let loading: boolean = true;
+
+	let show_guess_message: boolean = false;
+	let show_guess_message_to: number | null = null;
 
     let title_input_selected: boolean = true;
     let title_input: any;
@@ -147,8 +150,24 @@
 				artist_guess: current_guess_artist
 			}
 		};
+
+		if (show_guess_message_to !== null)
+		{
+			show_guess_message = false;
+			clearTimeout(show_guess_message_to);
+		}
+
 		sendmessage(message);
 	}
+
+	success_msg.subscribe((value) => {
+		console.log(`${value?.data.success} ${value?.data.first}`);
+
+		show_guess_message = true;
+		show_guess_message_to = setTimeout(() => {
+			show_guess_message = false;
+		}, 4000);
+	});
 
 	function onKeydown(event: KeyboardEvent)
     {
@@ -446,6 +465,23 @@
 								{/if}
 							</div>
 						</div>
+						{#if show_guess_message}
+							{#if $success_msg !== null}
+								{#if !$success_msg.data.success}
+									<div class="w-full bg-error rounded p-2" transition:slide>
+										<p class="text-center text-white">Incorrect try again !</p>
+									</div>
+								{:else if $success_msg.data.first}
+									<div class="w-full bg-success rounded p-2" transition:slide>
+										<p class="text-center text-white">Correct ! You are the first to find it ! +2 points</p>
+									</div>
+								{:else}
+									<div class="w-full bg-success rounded p-2" transition:slide>
+										<p class="text-center text-white">Correct ! +1 point</p>
+									</div>
+								{/if}
+							{/if}
+						{/if}
 					</div>
 				{/if}
 			{/if}

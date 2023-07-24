@@ -1,5 +1,5 @@
-import { room } from "$lib/store";
-import type { Message } from "./types";
+import { room, success_msg } from "$lib/store";
+import type { Message, SuccessMessage } from "./types";
 
 const url = 'ws://localhost:8080';
 export let ws = new WebSocket(url);
@@ -17,7 +17,8 @@ ws.onmessage = (event) => {
         case 'UPDATE':
             room.set(data.data.room);
             break;
-        case 'ERROR':
+        case 'SUCCESS':
+            success_msg.set(data as SuccessMessage);
             break;
         default:
             break;

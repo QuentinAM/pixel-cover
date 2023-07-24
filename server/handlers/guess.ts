@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { Room, Player, CreateMessage, GuessMessage, Log } from "../types";
+import type { Room, Player, CreateMessage, GuessMessage, Log, SuccessMessage } from "../types";
 import { rooms } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -63,13 +63,6 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
 
         if (room.first_guess == null)
         {
-            const guess_log: Log = {
-                message: `${player.name} guessed correctly in first !`,
-                date: new Date().toLocaleString()
-            }
-            room.logs.push(guess_log);
-
-            room.covers[room.index].first_to_found_id = player_id;
             room.first_guess = new Date().toDateString();
             
             console.log(`Setting timeout for room ${room_id} to ${room.time_to_answer_after_first_guess} seconds`);
@@ -86,8 +79,24 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
                 UpdateRoom(room_id, room);
             }, room.time_to_answer_after_first_guess * 1000);
 
+            const guess_log: Log = {
+                message: `${player.name} guessed correctly in first !`,
+                date: new Date().toLocaleString()
+            }
+            room.logs.push(guess_log);
+            room.covers[room.index].first_to_found_id = player_id;
             room.players.find(player => player.id === player_id)!.score += 2;
-            
+
+            // Send that the guess is correct in first
+            const message: SuccessMessage = {
+                type: 'SUCCESS',
+                data: {
+                    success: true,
+                    first: true
+                }
+            }
+            ws.send(JSON.stringify(message));
+
             UpdateRoom(room_id, room);
             return;
         }
@@ -123,7 +132,29 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
         room.logs.push(guess_log);
         room.covers[room.index].others_to_found_id.push(player_id);
         room.players.find(player => player.id === player_id)!.score += 1;
+
+        // Send that the guess is correct in first
+        const message: SuccessMessage = {
+            type: 'SUCCESS',
+            data: {
+                success: true,
+                first: false
+            }
+        }
+        ws.send(JSON.stringify(message));
+
         UpdateRoom(room_id, room);
+    }
+    else {
+        // Send that the guess is incorrect
+        const message: SuccessMessage = {
+            type: 'SUCCESS',
+            data: {
+                success: false,
+                first: false
+            }
+        }
+        ws.send(JSON.stringify(message));
     }
 }
 

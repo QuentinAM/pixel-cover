@@ -1,7 +1,7 @@
 import type { CoverType } from "$lib/type";
 import { WebSocket } from "ws";
 
-export type MessageType = 'CREATE' | 'UPDATE' | 'JOIN' | 'LEAVE' | 'ERROR' | 'START' | 'GUESS' | 'NEXT';
+export type MessageType = 'CREATE' | 'UPDATE' | 'JOIN' | 'LEAVE' | 'ERROR' | 'START' | 'GUESS' | 'NEXT' | 'SUCCESS';
 
 export interface Message {
     type: MessageType;
@@ -79,6 +79,14 @@ export interface NextMessage extends Message {
     data: {
         room_id: string;
         user_id: string; // Need to be host
+    }
+}
+
+export interface SuccessMessage extends Message {
+    type: 'SUCCESS';
+    data: {
+        success: boolean;
+        first: boolean;
     }
 }
 

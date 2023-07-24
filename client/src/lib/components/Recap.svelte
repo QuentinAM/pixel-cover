@@ -35,9 +35,9 @@
                             <Cover {cover}/>
                         </div>
                         <div class="w-1/2 flex flex-col space-y-1 h-full overflow-y-auto">
-                            <p class:text-yellow-400={IsUs(cover.first_to_found_id)} class="text-lg">{GetPlayerById(cover.first_to_found_id).name} - +2</p>
+                            <p class:text-yellow-400={IsUs(cover.first_to_found_id)} class="text-lg truncate">{GetPlayerById(cover.first_to_found_id).name} - +2</p>
                             {#each cover.others_to_found_id as id, j}
-                                <p class:text-yellow-400={IsUs(id)} class="text-base">{GetPlayerById(id).name} - +1</p>
+                                <p class:text-yellow-400={IsUs(id)} class="text-base truncate">{GetPlayerById(id).name} - +1</p>
                             {/each}
                         </div>
                     </div>

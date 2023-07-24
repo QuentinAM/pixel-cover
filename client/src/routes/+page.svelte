@@ -157,7 +157,7 @@
                             <input class="hidden"/>
                             <span class="label-text">Title</span>
                         </label>
-                        <div use:concurrent={{ interval: 300 }} class="input input-bordered w-full flex justify-start items-center">
+                        <div class="input input-bordered w-full flex justify-start items-center">
                             {showcase_cover.title}
                         </div>
                     </div>
