@@ -1,16 +1,21 @@
 <script lang="ts">
     import { room, user } from "$lib/store";
-    import type { Player } from "$lib/websocket/types";
+    import { onMount } from "svelte";
     import Cover from "./Cover.svelte";
+    import type { Player } from "$lib/websocket/types";
 
     function GetPlayerById(id: string): Player
     {
-        const res: Player | undefined = $room?.players.find((player: Player) => player.id === id);
+        const res = $room?.players.find((player: Player) => player.id === id);
         if (res === undefined)
         {
-            throw new Error("Player not found");
+            return {
+                name: "Unknown",
+                id: "Unknown",
+                score: 0
+            }
         }
-        return res
+        return res;
     }
 
     function IsUs(id: string): boolean
@@ -35,7 +40,11 @@
                             <Cover {cover}/>
                         </div>
                         <div class="w-1/2 flex flex-col space-y-1 h-full overflow-y-auto">
-                            <p class:text-yellow-400={IsUs(cover.first_to_found_id)} class="text-lg truncate">{GetPlayerById(cover.first_to_found_id).name} - +2</p>
+                            {#if cover.first_to_found_id !== ""}
+                                <p class:text-yellow-400={IsUs(cover.first_to_found_id)} class="text-lg truncate">{GetPlayerById(cover.first_to_found_id).name} - +2</p>
+                            {:else}
+                                <p class="italic">No one found this cover</p>
+                            {/if}
                             {#each cover.others_to_found_id as id, j}
                                 <p class:text-yellow-400={IsUs(id)} class="text-base truncate">{GetPlayerById(id).name} - +1</p>
                             {/each}

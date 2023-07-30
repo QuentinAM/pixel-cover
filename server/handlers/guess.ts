@@ -33,6 +33,18 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
         return;
     }
 
+    // Host cannot guess
+    if (player.id === room.host_player_id) {
+        const error = {
+            type: 'ERROR',
+            data: {
+                message: `Player ${player_id} is the host of room ${room_id}`
+            }
+        };
+        ws.send(JSON.stringify(error));
+        return;
+    }
+
     if (data.data.artist_guess === undefined || data.data.title_guess === undefined) {
         const error = {
             type: 'ERROR',
@@ -50,7 +62,7 @@ export function GuessCover(ws: WebSocket, data: GuessMessage) {
         const error = {
             type: 'ERROR',
             data: {
-                message: `Someone already guessed in room ${room_id}`
+                message: `Cannot guess anymore in room ${room_id}`
             }
         };
         ws.send(JSON.stringify(error));

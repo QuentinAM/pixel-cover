@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-    import { onMount } from 'svelte';
+    import { hasContext, onMount } from 'svelte';
 	import { room, success_msg, user } from '$lib/store';
     import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
-	import type { Cover as CoverType, Room } from '$lib/websocket/types';
+	import type { Cover as CoverType, EndMessage, Room } from '$lib/websocket/types';
     import type { GuessMessage, JoinResponse, LeaveMessage, NextMessage, StartMessage } from '$lib/websocket/types';
     import Cover from '$lib/components/Cover.svelte';
 	import LeaderBoard from '$lib/components/LeaderBoard.svelte';
@@ -17,14 +17,12 @@
 	let is_spec: boolean = false;
     let sendmessage: any;
 	let loading: boolean = true;
+	let waiting_guess_response: boolean = false;
 
 	let show_guess_message: boolean = false;
 	let show_guess_message_to: number | null = null;
 
-    let title_input_selected: boolean = true;
-    let title_input: any;
-    let artist_input: any;
-    let current_guess_title: string = '';
+	let current_guess_title: string = '';
     let current_guess_artist: string = '';
 
 	let time_left_to_answer_timeout: number | null = null;
@@ -87,14 +85,6 @@
 			}
 		};
 		sendmessage(message);
-
-		const unsubscribe = room.subscribe((value) => {
-			if (value == null)
-			{
-				unsubscribe();
-				goto('/');
-			}
-		});
 	}
 
 	async function StartGame()
@@ -130,7 +120,7 @@
 		{
 			const message: NextMessage = {
 				type: 'NEXT',
-				data:{
+				data: {
 					room_id: room_id,
 					user_id: $user.id
 				}
@@ -139,11 +129,26 @@
 		}
 	}
 	
+	function EndRound()
+	{
+		if (is_host)
+		{
+			const message: EndMessage = {
+				type: 'END',
+				data: {
+					room_id: room_id,
+					user_id: $user.id
+				}
+			};
+			sendmessage(message);
+		}
+	}
+
 	function AttemptGuess()
 	{
 		const message: GuessMessage = {
 			type: 'GUESS',
-			data:{
+			data: {
 				room_id: room_id,
 				user_id: $user.id,
 				title_guess: current_guess_title,
@@ -157,16 +162,23 @@
 			clearTimeout(show_guess_message_to);
 		}
 
+		waiting_guess_response = true;
 		sendmessage(message);
 	}
 
 	success_msg.subscribe((value) => {
 		console.log(`${value?.data.success} ${value?.data.first}`);
+		waiting_guess_response = false;
 
 		show_guess_message = true;
 		show_guess_message_to = setTimeout(() => {
 			show_guess_message = false;
-		}, 4000);
+
+			if (value?.data.success) {
+				current_guess_title = '';
+				current_guess_artist = '';
+			}
+		}, value?.data.success ? 4000 : 1000);
 	});
 
 	function onKeydown(event: KeyboardEvent)
@@ -210,22 +222,6 @@
 		setting_cover_link = '';
 		setting_cover_artist = '';
 		setting_cover_title = '';
-	}
-
-	function TimeLeftToAnswer(r: Room | null)
-	{
-		if (r && r.first_guess)
-		{
-			const first_guess: Date= new Date(r.first_guess);
-			const limit: Date = new Date(first_guess.getTime());
-			const now: Date = new Date();
-			const diff = limit.getTime() - now.getTime();
-			console.log(diff);
-			const res = Math.max(-1, Math.floor(diff / 1000));
-			console.log(res);
-			return res;
-		}
-		return -1;
 	}
 
 	function DeleteCover(link: string)
@@ -285,24 +281,22 @@
 	<p>Loading...</p>
 {:else}
 	<div class="hero min-h-screen bg-base-200 relative">
-		<div class="hero-content flex w-full">
+		<div class="hero-content flex lg:flex-row flex-col w-full">
 			{#if $room}
-				<div class="absolute bottom-2 right-2">
+				<div class="absolute bottom-2 right-2 flex flex-row items-end space-x-1">
+					{#if game_ended}
+						<button class="btn btn-error" on:click={LeaveRoom}>Leave room</button>
+					{/if}
 					<Logs/>
 				</div>
-				<!-- <div class="absolute top-5 right-5"> -->
-					<!-- <span class="countdown font-mono text-6xl">
-						<span style={`--value:${timer};`}></span>
-					</span>
-				</div> -->
 				{#if !$room.playing}
-					<div class="absolute left-2 rounded p-3 shadow shadow-black">
+					<div class="absolute left-2 bottom-2 rounded p-3 shadow shadow-black">
 						{#each $room.players as player}
 							<p transition:slide>{player.name}</p>
 						{/each}
 					</div>
 					{#if is_host}
-						<div class="shadow shadow-black p-3 bg-base-100 space-y-2 w-3/4">
+						<div class="shadow shadow-black p-3 bg-base-100 space-y-2 lg:w-3/4 w-full">
 							<h1 class="text-base font-semibold">Settings</h1>
 							<div class="divider divider-vertical"></div>
 							<div class="space-y-1 flex flex-row">
@@ -342,7 +336,7 @@
 										</table>
 									</div>
 									<div class="shadow shadow-black p-3 rounded space-y-2">
-										<h1 class="text-base font-light">Add cover</h1>
+										<h1 class="text-base font-medium">Add cover</h1>
 										<div class="form-control w-full">
 											<label class="label">
 												<input class="hidden"/>
@@ -389,7 +383,7 @@
 											<input class="hidden"/>
 											<span class="label-text">Pixelate factor ({$room.pixelate_factor} px)</span>
 										</label>
-										<input bind:value={$room.pixelate_factor} type="range" min="2" max="100" class="range" step="1" />
+										<input bind:value={$room.pixelate_factor} type="range" min="2" max="150" class="range" step="1" />
 									</div>
 									<div class="form-control w-full">
 										<label class="label">
@@ -398,6 +392,15 @@
 										</label>
 										<input bind:value={$room.time_to_answer_after_first_guess} type="number" min="0" max="60" class="input input-primary" />
 									</div>
+									{#if covers_input.length > 0}
+										<div class="divider divider-vertical"></div>
+										<div class="flex flex-col items-center justify-center">
+											<div class="w-80 h-80">
+													<Cover cover={covers_input[0]} pixelate pixelate_factor={$room.pixelate_factor}/>
+											</div>
+											<p class="italic">Pixelation indicator</p>
+										</div>
+									{/if}
 								</div>
 							</div>
 						</div>
@@ -412,76 +415,83 @@
 					<div class="absolute top-2 right-2">
 						<LeaderBoard/>
 					</div>
-					<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
-						<span class="countdown font-mono text-5xl">
-						<span style={`--value:${player?.score};`}></span>
-						</span>
-						score
-					</div>
-					{#if timer != null && timer >= 0}
+					<div class="flex flex-row items-center space-x-1">
 						<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
 							<span class="countdown font-mono text-5xl">
-								<span style={`--value:${timer};`}></span>
+							<span style={`--value:${player?.score};`}></span>
 							</span>
-							sec left
+							score
 						</div>
-					{/if}
-					<div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
-						<div class="card-body">
-							<div class="flex flex-col space-y-2 w-80">
-								{#if game_ended}
-									<Recap/>
-								{:else}
-									{#if $room.currently_guessed && $room.covers[$room.index].title && $room.covers[$room.index].artist}
-										<div class="flex flex-row space-x-2" transition:slide>
-											<h2 class="text-2xl font-bold underline">{$room.covers[$room.index].title}</h2>
-											<h3 class="text-2xl font-bold">by {$room.covers[$room.index].artist}</h3>
-										</div>
-									{/if}
-									<div class="h-80 w-80">
-										<Cover cover={$room.covers[$room.index]} />
-									</div>
-									{#if !$room.currently_guessed && !is_spec}
-										<div class="w-full flex flex-row space-x-2">
-											<div class="form-control w-1/2">
-												<label class="label">
-													<input class="hidden"/>
-													<span class="label-text">Title</span>
-												</label>
-												<input disabled={has_guessed ? has_guessed : false} bind:this={title_input} bind:value={current_guess_title} type="text" placeholder="..." class="input input-bordered w-full" />
-											</div>
-											<div class="form-control w-1/2">
-												<label class="label">
-													<input class="hidden"/>
-													<span class="label-text">Artist</span>
-												</label>
-												<input disabled={has_guessed ? has_guessed : false} bind:this={artist_input} bind:value={current_guess_artist} type="text" placeholder="..." class="input input-bordered w-full" />
-											</div>
-										</div>
-									{/if}
-									{#if $room.currently_guessed && is_host}
-										<button class="btn btn-primary" on:click={NextRound}>Next Round</button>
-									{/if}
-								{/if}
+						{#if timer != null && timer >= 0}
+							<div class="flex flex-col p-2 bg-neutral rounded-box text-neutral-content">
+								<span class="countdown font-mono text-5xl">
+									<span style={`--value:${timer};`}></span>
+								</span>
+								sec left
 							</div>
-						</div>
-						{#if show_guess_message}
-							{#if $success_msg !== null}
-								{#if !$success_msg.data.success}
-									<div class="w-full bg-error rounded p-2" transition:slide>
-										<p class="text-center text-white">Incorrect try again !</p>
-									</div>
-								{:else if $success_msg.data.first}
-									<div class="w-full bg-success rounded p-2" transition:slide>
-										<p class="text-center text-white">Correct ! You are the first to find it ! +2 points</p>
-									</div>
-								{:else}
-									<div class="w-full bg-success rounded p-2" transition:slide>
-										<p class="text-center text-white">Correct ! +1 point</p>
-									</div>
+						{/if}
+						<div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+							<div class="card-body">
+								<div class="flex flex-col space-y-2 w-80">
+									{#if game_ended}
+										<Recap/>
+									{:else}
+										{#if $room.currently_guessed && $room.covers[$room.index].title && $room.covers[$room.index].artist}
+											<div class="flex flex-row space-x-2" transition:slide>
+												<h2 class="text-2xl font-bold underline">{$room.covers[$room.index].title}</h2>
+												<h3 class="text-2xl font-bold">by {$room.covers[$room.index].artist}</h3>
+											</div>
+										{/if}
+										<div class="h-80 w-80">
+											<Cover cover={$room.covers[$room.index]} />
+										</div>
+										{#if !$room.currently_guessed && !is_spec && !is_host}
+											<div class="w-full flex flex-row space-x-2">
+												<div class="form-control w-1/2">
+													<label class="label">
+														<input class="hidden"/>
+														<span class="label-text">Title</span>
+													</label>
+													<input disabled={has_guessed ? has_guessed : false} bind:value={current_guess_title} type="text" placeholder="..." class="input input-bordered w-full" />
+												</div>
+												<div class="form-control w-1/2">
+													<label class="label">
+														<input class="hidden"/>
+														<span class="label-text">Artist</span>
+													</label>
+													<input disabled={has_guessed ? has_guessed : false} bind:value={current_guess_artist} type="text" placeholder="..." class="input input-bordered w-full" />
+												</div>
+											</div>
+											<button disabled={has_guessed ? has_guessed : false} class="btn" class:loading={waiting_guess_response} on:click={AttemptGuess}>{waiting_guess_response ? '' : 'Guess'}</button>
+										{/if}
+										{#if is_host}
+											{#if $room.currently_guessed}
+												<button class="btn btn-primary" on:click={NextRound}>Next Round</button>
+											{:else}
+												<button class="btn btn-primary" on:click={EndRound}>End round</button>
+											{/if}
+										{/if}
+									{/if}
+								</div>
+							</div>
+							{#if show_guess_message}
+								{#if $success_msg !== null}
+									{#if !$success_msg.data.success}
+										<div class="w-full bg-error rounded p-2" transition:slide>
+											<p class="text-center text-white">Incorrect try again !</p>
+										</div>
+									{:else if $success_msg.data.first}
+										<div class="w-full bg-success rounded p-2" transition:slide>
+											<p class="text-center text-white">Correct ! You are the first to find it ! +2 points</p>
+										</div>
+									{:else}
+										<div class="w-full bg-success rounded p-2" transition:slide>
+											<p class="text-center text-white">Correct ! +1 point</p>
+										</div>
+									{/if}
 								{/if}
 							{/if}
-						{/if}
+						</div>
 					</div>
 				{/if}
 			{/if}

@@ -51,7 +51,7 @@ export async function PixelateCovers(covers: CoverType[], pixelate_factor: numbe
                     link: url,
                     title: cover.title,
                     artist: cover.artist,
-                    first_to_found_id: [],
+                    first_to_found_id: "",
                     others_to_found_id: []
                 });
                 if (i === covers.length - 1) {

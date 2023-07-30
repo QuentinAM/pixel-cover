@@ -11,7 +11,7 @@
     let sendmessage: any;
     let loading: boolean = true;
     
-    const id = Math.random().toString(36).substr(3, 10);
+    const id = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id : Math.random().toString(36).substr(7);;
     let username: string = '';
     let room_id_to_join: string = '';
 
@@ -108,6 +108,7 @@
         sendmessage = SendMessage;
         user.set({ id, username });
         loading = false;
+        localStorage.setItem('user', JSON.stringify({ id, username }));
         StartShowcase();
     });
 </script>

@@ -1,5 +1,5 @@
 import { WebSocket } from "ws";
-import type { Room, Player, LeaveMessage, Log } from "../types";
+import type { Room, Player, LeaveMessage, Log, UpdateResponse } from "../types";
 import { rooms, wsStore } from "../index";
 import { UpdateRoom } from "../update";
 
@@ -34,7 +34,7 @@ export function LeaveRoom(ws: WebSocket, data: LeaveMessage) {
     }
 
     console.log(`Player ${player_id} is leaving room ${room_id}`);
-
+    
     // Remove player from room
     room.players = room.players.filter(player => player.id !== player_id);
     
@@ -47,9 +47,18 @@ export function LeaveRoom(ws: WebSocket, data: LeaveMessage) {
 
     let wsList = wsStore.get(room_id);
     if (wsList) {
-        wsList = wsList.filter(ws => ws.id !== player_id);
+        wsList = wsList.filter(ws_ => ws_.id !== player_id);
         wsStore.set(room_id, wsList);
     }
+
+    // Send null room to player to notify them that they left
+    const leave_message: UpdateResponse = {
+        type: 'UPDATE',
+        data: {
+            room: null
+        }
+    };
+    ws.send(JSON.stringify(leave_message));
 
     const leave_log: Log = {
         message: `${player.name} left the room`,

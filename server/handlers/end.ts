@@ -1,15 +1,12 @@
 import { WebSocket } from "ws";
-import type { Log, NextMessage } from "../types";
+import type { Room, Player,  EndMessage, Log } from "../types";
 import { rooms } from "../index";
 import { UpdateRoom } from "../update";
 
-export function NextRound(ws: WebSocket, data: NextMessage) {
-    const room_id = data.data.room_id;
-    const player_id = data.data.user_id;
-
-    console.log(`Player ${player_id} is trying to start the next round in room ${room_id}`);
-
+export async function EndRound(ws: WebSocket, data: EndMessage) {
+    
     // Check if room exists
+    const room_id = data.data.room_id;
     let room = rooms.get(room_id);
     if (!room) {
         const error = {
@@ -22,7 +19,8 @@ export function NextRound(ws: WebSocket, data: NextMessage) {
         return;
     }
 
-    // Check if player is in room
+    // Check if user is in room and is the host
+    const player_id = data.data.user_id;
     let player = room.players.find(player => player.id === player_id);
     if (!player) {
         const error = {
@@ -34,13 +32,11 @@ export function NextRound(ws: WebSocket, data: NextMessage) {
         ws.send(JSON.stringify(error));
         return;
     }
-
-    // Check if player is host
     if (player.id !== room.host_player_id) {
         const error = {
             type: 'ERROR',
             data: {
-                message: `Player ${player_id} is not host of room ${room_id}`
+                message: `Player ${player_id} is not the host of room ${room_id}`
             }
         };
         ws.send(JSON.stringify(error));
@@ -48,21 +44,22 @@ export function NextRound(ws: WebSocket, data: NextMessage) {
     }
 
     // Update params
-    room.index += 1;
-    room.first_guess = null;
-    room.currently_guessed = false;
-    room.can_still_guess = true;
+    console.log(`Round manually ended ${room_id}`);
+    if (!room) return;
+    room.can_still_guess = false;
+
+    // Switch back to normal cover
+    room.covers[room.index].link = room.real_covers[room.index].link;
+    room.currently_guessed = true;
     
     // Log
-    const next_log: Log = {
-        message: `${player.name} started the next round`,
+    const log: Log = {
+        message: `${player.name} ended the round`,
         date: new Date().toLocaleString()
     }
+    room.logs.push(log);
 
-    // Special case for last round
-    if (room.index === room.covers.length) {
-        next_log.message = 'Game is over'
-    }
-    room.logs.push(next_log);
+    // Update
+    rooms.set(room_id, room);
     UpdateRoom(room_id, room);
 }

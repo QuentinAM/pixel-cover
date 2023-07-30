@@ -5,7 +5,8 @@ import { JoinRoom } from "./handlers/join";
 import { LeaveRoom } from "./handlers/leave";
 import { NextRound } from "./handlers/next";
 import { StartRoom } from "./handlers/start";
-import type { CreateMessage, GuessMessage, JoinResponse, LeaveMessage, Message, NextMessage, Room, StartMessage, WebSocketPlayer } from "./types";
+import type { CreateMessage, EndMessage, GuessMessage, JoinResponse, LeaveMessage, Message, NextMessage, Room, StartMessage, WebSocketPlayer } from "./types";
+import { EndRound } from "./handlers/end";
 
 const wss = new WebSocketServer({ port: 8080 });
 export const rooms = new Map<string, Room>();
@@ -39,6 +40,8 @@ wss.on('connection', function connection(ws) {
             case 'NEXT':
                 NextRound(ws, data as NextMessage);
                 break;
+            case 'END':
+                EndRound(ws, data as EndMessage);
             default:
                 break;
         }
