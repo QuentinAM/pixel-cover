@@ -19,13 +19,14 @@ export function JoinRoom(ws_obj: WebSocket, data: JoinResponse) {
         return;
     }
 
-    // Check if player is in another room
-    for (const [room_id, room] of rooms) {
-        if (room.players.find(player => player.id === data.data.player_id)) {
+    // Check if player is in another room except ours
+    for (const [room_id_, room_] of rooms) {
+        if (room_id_ === room_id) continue;
+        if (room_.players.find(player => player.id === data.data.player_id)) {
             const error = {
                 type: 'ERROR',
                 data: {
-                    message: `Player ${data.data.player_id} is already in room ${room_id}`
+                    message: `Player ${data.data.player_id} is already in room ${room_id_}`
                 }
             };
             ws_obj.send(JSON.stringify(error));
@@ -34,16 +35,27 @@ export function JoinRoom(ws_obj: WebSocket, data: JoinResponse) {
     }
 
     // Check if player already in room with id
-    if (room.players.find(player => player.id === data.data.player_id)) {
+    let player = room.players.find(player => player.id === data.data.player_id);
+    if (player) {
+        player.connected = true; // Connect back
         
-        // Don't send an error just connect the player to the room
-        const response: UpdateResponse = {
-            type: 'UPDATE',
-            data: {
-                room: room
-            }
+        // Send again information to the player
+        const wsList = wsStore.get(room_id);
+        if (wsList) {
+            wsList.push({
+                id: player.id,
+                ws: ws_obj
+            });
+            wsStore.set(room_id, wsList);
         }
-        ws_obj.send(JSON.stringify(response));
+
+        const join_log: Log = {
+            message: `${player.name} joined back the room`,
+            date: new Date().toLocaleString()
+        };
+        room.logs.push(join_log);
+
+        UpdateRoom(room_id, room);
         return;
     }
 
@@ -58,7 +70,8 @@ export function JoinRoom(ws_obj: WebSocket, data: JoinResponse) {
     room.players.push({
         id: data.data.player_id,
         name: player_name,
-        score: 0
+        score: 0,
+        connected: true
     });
 
     console.log(`${data.data.player_id} joined room ${room_id}`);

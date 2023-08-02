@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { room, user } from '$lib/store';
+    import { room, user, wssConnected } from '$lib/store';
     import { goto } from '$app/navigation';
     import { concurrent } from 'svelte-typewriter';
     import { slide } from 'svelte/transition';
@@ -11,7 +11,7 @@
     let sendmessage: any;
     let loading: boolean = true;
     
-    const id = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id : Math.random().toString(36).substr(7);;
+    let id: string;
     let username: string = '';
     let room_id_to_join: string = '';
 
@@ -45,6 +45,7 @@
             }
         };
         user.set({ id, username });
+        localStorage.setItem('user', JSON.stringify({ id, username }));
         sendmessage(message);
     }
 
@@ -71,6 +72,7 @@
             }
         };
         user.set({ id, username });
+        localStorage.setItem('user', JSON.stringify({ id, username }));
         sendmessage(message);
     }
 
@@ -106,13 +108,28 @@
     onMount(async () => {
         let { SendMessage } = await import('$lib/websocket');
         sendmessage = SendMessage;
+
+        id = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).id : Math.random().toString(36).substr(7);
         user.set({ id, username });
         loading = false;
         localStorage.setItem('user', JSON.stringify({ id, username }));
         StartShowcase();
     });
 </script>
-
+<div class="navbar bg-base-100">
+    <div class="flex-1">
+    </div>
+    <div class="flex-none">
+        {#if !$wssConnected}
+            <p>Connecting to server...</p>
+            <span class="loading loading-ring loading-lg"></span>
+            <div class="divider divider-horizontal"></div>
+        {/if}
+        <button class="btn btn-square btn-ghost">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-5 h-5 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
+        </button>
+    </div>
+</div>
 <div class="flex min-h-screen justify-start bg-base-200">
     <div class="hero-content w-full max-w-full">
         <div class="flex flex-col w-1/2">
@@ -128,7 +145,7 @@
                     </label>
                     <input on:focus={() => {
                         username_error = false;
-                    }} class="input input-primary" class:input-error={username_error} bind:value={username} placeholder="Enter your name" />
+                    }} class="input input-primary" class:input-error={username_error} disabled={!$wssConnected} bind:value={username} placeholder="Enter your name" />
                 </div>
                 <div class="form-control">
                     <label class="label">
@@ -136,11 +153,11 @@
                     </label>
                     <input on:focus={() => {
                         room_id_error = false;
-                    }} class="input input-primary" class:input-error={room_id_error} bind:value={room_id_to_join} placeholder="RoomID" />
+                    }} class="input input-primary" class:input-error={room_id_error} disabled={!$wssConnected} bind:value={room_id_to_join} placeholder="RoomID" />
                 </div>
                 <div class="form-control mt-6 flex flex-row w-full space-x-2">
-                    <button class="btn btn-primary w-1/2" on:click={CreateRoom}>Create Room</button>
-                    <button class="btn btn-primary w-1/2" on:click={JoinRoom}>Join Room</button>
+                    <button class="btn btn-primary w-1/2" disabled={!$wssConnected} on:click={CreateRoom}>Create Room</button>
+                    <button class="btn btn-primary w-1/2" disabled={!$wssConnected} on:click={JoinRoom}>Join Room</button>
                 </div>
                 </div>
             </div>

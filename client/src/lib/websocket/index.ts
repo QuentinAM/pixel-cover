@@ -1,4 +1,4 @@
-import { room, success_msg } from "$lib/store";
+import { room, success_msg, wssConnected } from "$lib/store";
 import type { Message, SuccessMessage } from "./types";
 
 const url = 'ws://localhost:8080';
@@ -8,6 +8,7 @@ export let connectionEstablished = false;
 ws.onopen = () => {
     console.log('connection established');
     connectionEstablished = true;
+    wssConnected.set(true);
 }
 
 ws.onmessage = (event) => {
@@ -28,6 +29,7 @@ ws.onmessage = (event) => {
 ws.onclose = () => {
     console.log('connection closed');
     connectionEstablished = false;
+    wssConnected.set(false);
 }
 
 export function SendMessage(message: Message) {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
     import { hasContext, onMount } from 'svelte';
-	import { room, success_msg, user } from '$lib/store';
+	import { room, success_msg, user, wssConnected } from '$lib/store';
     import { goto } from '$app/navigation';
 	import { slide } from 'svelte/transition';
 	import type { Cover as CoverType, EndMessage, Room } from '$lib/websocket/types';
@@ -63,7 +63,6 @@
 		else if (!time_left_to_answer_timeout && $room.first_guess)
 		{
 			timer = $room.time_to_answer_after_first_guess - 1;
-			console.log(timer);
 			time_left_to_answer_timeout = setInterval(() => {
 				if (timer)
 				{
@@ -167,7 +166,6 @@
 	}
 
 	success_msg.subscribe((value) => {
-		console.log(`${value?.data.success} ${value?.data.first}`);
 		waiting_guess_response = false;
 
 		show_guess_message = true;
@@ -232,31 +230,22 @@
 	onMount(async () => {
         let { SendMessage } = await import('$lib/websocket');
         sendmessage = SendMessage;
+		
+		const user = JSON.parse(localStorage.getItem('user')!);
+		if (user == null)
+		{
+			goto('/');
+			return;
+		}
 
 		if ($room == null)
 		{
-			if ($user == null)
-			{
-				goto('/');
-				return;
-			}
-
-			const message: JoinResponse = {
-				type: 'JOIN',
-				data:{
-					room_id: room_id,
-					player_id: $user.id,
-					player_name: $user.username
-				}
-			};
-			sendmessage(message);
-
 			const unsubscribe = room.subscribe((value) => {
 				if (value != null)
 				{
 					unsubscribe();
-					is_host = value.host_player_id == $user.id;
-					is_spec = value.players.find((player) => player.id == $user.id) == null;
+					is_host = value.host_player_id == user.id;
+					is_spec = value.players.find((player) => player.id == user.id) == null;
 					loading = false;
 				}
 				else
@@ -265,148 +254,180 @@
 				}
 			});
 
+			const message: JoinResponse = {
+				type: 'JOIN',
+				data:{
+					room_id: room_id,
+					player_id: user.id,
+					player_name: user.username
+				}
+			};
+			sendmessage(message);
+
 			return;
 		}
 		else
 		{
-			is_host = $room.host_player_id == $user.id;
-			is_spec = $room.players.find((player) => player.id == $user.id) == null;
+			is_host = $room.host_player_id == user.id;
+			is_spec = $room.players.find((player) => player.id == user.id) == null;
 			loading = false;
 		}
 	});
 </script>
 
 <svelte:window on:beforeunload={LeaveRoom} on:keydown={onKeydown}/>
+
+<div class="absolute w-screen top-0 left-0 right-0 z-10 bg-base-100 flex p-2">
+	<div class="flex-1">
+		<a class="btn btn-ghost normal-case text-xl" href="/" on:click|preventDefault={() => {
+			goto('/');
+		}}>Pixel cover</a>
+	</div>
+	<div class="flex-none">
+		{#if !$wssConnected}
+			<p>Connecting to server...</p>
+			<span class="loading loading-ring loading-lg"></span>
+			<div class="divider divider-horizontal"></div>
+		{/if}
+		<button class="btn btn-square btn-ghost">
+		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-5 h-5 stroke-current"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path></svg>
+		</button>
+	</div>
+</div>
 {#if loading}
 	<p>Loading...</p>
 {:else}
 	<div class="hero min-h-screen bg-base-200 relative">
-		<div class="hero-content flex lg:flex-row flex-col w-full">
+		<div class="hero-content flex flex-row w-full">
 			{#if $room}
 				<div class="absolute bottom-2 right-2 flex flex-row items-end space-x-1">
-					{#if game_ended}
-						<button class="btn btn-error" on:click={LeaveRoom}>Leave room</button>
-					{/if}
 					<Logs/>
 				</div>
 				{#if !$room.playing}
-					<div class="absolute left-2 bottom-2 rounded p-3 shadow shadow-black">
+					<!-- <div class="absolute left-2 bottom-2 rounded p-3 shadow shadow-black">
 						{#each $room.players as player}
-							<p transition:slide>{player.name}</p>
+							<p transition:slide class:text-green-400={player.connected} class:text-red-400é={!player.connected}>{player.name}</p>
 						{/each}
-					</div>
+					</div> -->
 					{#if is_host}
-						<div class="shadow shadow-black p-3 bg-base-100 space-y-2 lg:w-3/4 w-full">
-							<h1 class="text-base font-semibold">Settings</h1>
-							<div class="divider divider-vertical"></div>
-							<div class="space-y-1 flex flex-row">
-								<div class="w-1/2 space-y-2">
-									<h1 class="text-base font-medium">Covers</h1>
-									<div class="overflow-x-auto w-full shadow shadow-black rounded overflow-y-auto max-h-64">
-										<table class="table w-full">
-											<!-- head -->
-											<thead>
-												<tr>
-												<th>Cover</th>
-												<th>Title</th>
-												<th>Artist</th>
-												<th></th>
-												</tr>
-											</thead>
-											<tbody>
-												<!-- row 1 -->
-
-												{#each covers_input as cover}
+						<div class="flex flex-col space-y-1 shadow shadow-black p-3 h-full">
+							{#each $room.players as player}
+								<p transition:slide class:text-green-400={player.connected} class:text-red-400é={!player.connected}>{player.name}</p>
+							{/each}
+						</div>
+						<div class="flex flex-col w-full h-full items-center space-y-2">
+							<div class="shadow shadow-black p-3 bg-base-100 space-y-2 lg:w-3/4 w-full">
+								<h1 class="text-base font-semibold">Settings</h1>
+								<div class="divider divider-vertical"></div>
+								<div class="space-y-1 flex flex-row">
+									<div class="w-1/2 space-y-2">
+										<h1 class="text-base font-medium">Covers</h1>
+										<div class="overflow-x-auto w-full shadow shadow-black rounded overflow-y-auto max-h-64">
+											<table class="table w-full">
+												<!-- head -->
+												<thead>
 													<tr>
-														<td>
-															<div class="avatar">
-															<div class="mask mask-squircle w-12 h-12">
-																<img src={cover.link} alt="Avatar Tailwind CSS Component" />
-															</div>
-															</div>
-														</td>
-														<td>{cover.title}</td>
-														<td>{cover.artist}</td>
-														<th>
-															<button on:click={() => DeleteCover(cover.link)} class="btn btn-error btn-xs">Delete</button>
-														</th>
+													<th>Cover</th>
+													<th>Title</th>
+													<th>Artist</th>
+													<th></th>
 													</tr>
-												{/each}
-											</tbody>
-										</table>
+												</thead>
+												<tbody>
+													<!-- row 1 -->
+
+													{#each covers_input as cover}
+														<tr>
+															<td>
+																<div class="avatar">
+																<div class="mask mask-squircle w-12 h-12">
+																	<img src={cover.link} alt="Avatar Tailwind CSS Component" />
+																</div>
+																</div>
+															</td>
+															<td>{cover.title}</td>
+															<td>{cover.artist}</td>
+															<th>
+																<button on:click={() => DeleteCover(cover.link)} class="btn btn-error btn-xs">Delete</button>
+															</th>
+														</tr>
+													{/each}
+												</tbody>
+											</table>
+										</div>
+										<div class="shadow shadow-black p-3 rounded space-y-2">
+											<h1 class="text-base font-medium">Add cover</h1>
+											<div class="form-control w-full">
+												<label class="label">
+													<input class="hidden"/>
+													<span class="label-text">Link</span>
+												</label>
+												<input bind:value={setting_cover_link} type="text" placeholder="..." class="input input-bordered w-full" />
+											</div>
+											<div class="flex flex-row w-full space-x-2">
+												<div class="form-control w-1/2">
+													<label class="label">
+														<input class="hidden"/>
+														<span class="label-text">Title</span>
+													</label>
+													<input bind:value={setting_cover_title} type="text" placeholder="..." class="input input-bordered w-full" />
+												</div>
+												<div class="form-control w-1/2">
+													<label class="label">
+														<input class="hidden"/>
+														<span class="label-text">Artist</span>
+													</label>
+													<input bind:value={setting_cover_artist} type="text" placeholder="..." class="input input-bordered w-full" />
+												</div>
+											</div>
+											<button class="btn btn-primary w-full" on:click={AddCover}>Add</button>
+										</div>
 									</div>
-									<div class="shadow shadow-black p-3 rounded space-y-2">
-										<h1 class="text-base font-medium">Add cover</h1>
+									<div class="divider divider-horizontal"></div>
+									<div class="w-1/2 space-y-2">
+										<h1 class="text-base font-medium">Global params</h1>
+										<div class="form-control">
+											<label class="label cursor-pointer">
+												<span class="label-text">Case sensitive</span> 
+												<input bind:checked={$room.case_sensitive} type="checkbox" class="toggle" />
+											</label>
+										</div>
+										<div class="form-control">
+											<label class="label cursor-pointer">
+												<span class="label-text">Replace special chars</span> 
+												<input bind:checked={$room.replace_special_chars} type="checkbox" class="toggle" />
+											</label>
+										</div>
 										<div class="form-control w-full">
 											<label class="label">
 												<input class="hidden"/>
-												<span class="label-text">Link</span>
+												<span class="label-text">Pixelate factor ({$room.pixelate_factor} px)</span>
 											</label>
-											<input bind:value={setting_cover_link} type="text" placeholder="..." class="input input-bordered w-full" />
+											<input bind:value={$room.pixelate_factor} type="range" min="2" max="150" class="range" step="1" />
 										</div>
-										<div class="flex flex-row w-full space-x-2">
-											<div class="form-control w-1/2">
-												<label class="label">
-													<input class="hidden"/>
-													<span class="label-text">Title</span>
-												</label>
-												<input bind:value={setting_cover_title} type="text" placeholder="..." class="input input-bordered w-full" />
-											</div>
-											<div class="form-control w-1/2">
-												<label class="label">
-													<input class="hidden"/>
-													<span class="label-text">Artist</span>
-												</label>
-												<input bind:value={setting_cover_artist} type="text" placeholder="..." class="input input-bordered w-full" />
-											</div>
+										<div class="form-control w-full">
+											<label class="label">
+												<input class="hidden"/>
+												<span class="label-text">Time to guess after first</span>
+											</label>
+											<input bind:value={$room.time_to_answer_after_first_guess} type="number" min="0" max="60" class="input input-primary" />
 										</div>
-										<button class="btn btn-primary w-full" on:click={AddCover}>Add</button>
-									</div>
-								</div>
-								<div class="divider divider-horizontal"></div>
-								<div class="w-1/2 space-y-2">
-									<h1 class="text-base font-medium">Global params</h1>
-									<div class="form-control">
-										<label class="label cursor-pointer">
-											<span class="label-text">Case sensitive</span> 
-											<input bind:checked={$room.case_sensitive} type="checkbox" class="toggle" />
-										</label>
-									</div>
-									<div class="form-control">
-										<label class="label cursor-pointer">
-											<span class="label-text">Replace special chars</span> 
-											<input bind:checked={$room.replace_special_chars} type="checkbox" class="toggle" />
-										</label>
-									</div>
-									<div class="form-control w-full">
-										<label class="label">
-											<input class="hidden"/>
-											<span class="label-text">Pixelate factor ({$room.pixelate_factor} px)</span>
-										</label>
-										<input bind:value={$room.pixelate_factor} type="range" min="2" max="150" class="range" step="1" />
-									</div>
-									<div class="form-control w-full">
-										<label class="label">
-											<input class="hidden"/>
-											<span class="label-text">Time to guess after first</span>
-										</label>
-										<input bind:value={$room.time_to_answer_after_first_guess} type="number" min="0" max="60" class="input input-primary" />
-									</div>
-									{#if covers_input.length > 0}
-										<div class="divider divider-vertical"></div>
-										<div class="flex flex-col items-center justify-center">
-											<div class="w-80 h-80">
-													<Cover cover={covers_input[0]} pixelate pixelate_factor={$room.pixelate_factor}/>
+										{#if covers_input.length > 0}
+											<div class="divider divider-vertical"></div>
+											<div class="flex flex-col items-center justify-center">
+												<div class="w-80 h-80">
+														<Cover cover={covers_input[0]} pixelate pixelate_factor={$room.pixelate_factor}/>
+												</div>
+												<p class="italic">Pixelation indicator</p>
 											</div>
-											<p class="italic">Pixelation indicator</p>
-										</div>
-									{/if}
+										{/if}
+									</div>
 								</div>
 							</div>
-						</div>
-						<div>
-							<button class="btn btn-primary" on:click={StartGame}>Start Game</button>
-							<button class="btn btn-primary" on:click={LeaveRoom}>Leave Room</button>
+							<div>
+								<button class="btn btn-primary" on:click={StartGame}>Start Game</button>
+								<button class="btn btn-error" on:click={LeaveRoom}>Leave Room</button>
+							</div>
 						</div>
 					{:else}
 						<button class="btn btn-primary" on:click={LeaveRoom}>Leave Room</button>

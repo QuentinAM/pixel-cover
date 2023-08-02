@@ -36,17 +36,26 @@ export function LeaveRoom(ws: WebSocket, data: LeaveMessage) {
     console.log(`Player ${player_id} is leaving room ${room_id}`);
     
     // Remove player from room
-    room.players = room.players.filter(player => player.id !== player_id);
-    
-    // If room is empty, delete it
-    if (room.players.length === 0) {
+    // room.players = room.players.filter(player => player.id !== player_id);
+    player.connected = false;
+
+    // If room all player are disconnected, delete it
+    let all_disconnected = true;
+    for (const p of room.players) {
+        if (p.connected) {
+            all_disconnected = false;
+        }
+    }
+    if (all_disconnected) {
         console.log(`Room ${room_id} is empty, deleting it`);
         rooms.delete(room_id);
+        wsStore.delete(room_id);
         return;
     }
 
     let wsList = wsStore.get(room_id);
     if (wsList) {
+        // We don't send the information to the player
         wsList = wsList.filter(ws_ => ws_.id !== player_id);
         wsStore.set(room_id, wsList);
     }

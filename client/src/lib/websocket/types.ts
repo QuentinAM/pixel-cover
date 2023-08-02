@@ -102,6 +102,7 @@ export interface Player {
     id: string;
     name: string;
     score: number;
+    connected: boolean;
 }
 
 export interface WebSocketPlayer {

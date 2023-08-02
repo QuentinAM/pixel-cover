@@ -9,7 +9,8 @@ export function CreateRoom(ws_: WebSocket, data: CreateMessage) {
     const host: Player = {
         id: data.data.host_id,
         name: data.data.host_name,
-        score: 0
+        score: 0,
+        connected: true
     }
 
     const room: Room = {
