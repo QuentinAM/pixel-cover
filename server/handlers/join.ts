@@ -37,6 +37,19 @@ export function JoinRoom(ws_obj: WebSocket, data: JoinResponse) {
     // Check if player already in room with id
     let player = room.players.find(player => player.id === data.data.player_id);
     if (player) {
+
+        // Check for double connection
+        if (player.connected) {
+            const error = {
+                type: 'ERROR',
+                data: {
+                    message: `Player ${data.data.player_id} is already connected in room ${room_id}`
+                }
+            };
+            ws_obj.send(JSON.stringify(error));
+            return;
+        }
+
         player.connected = true; // Connect back
         
         // Send again information to the player

@@ -3,7 +3,7 @@
     import { room, user, wssConnected } from '$lib/store';
     import { goto } from '$app/navigation';
     import { concurrent } from 'svelte-typewriter';
-    import { slide } from 'svelte/transition';
+    import { slide, fade } from 'svelte/transition';
     import type { CoverType } from '$lib/type';
     import type { CreateMessage, JoinResponse } from '$lib/websocket/types';
     import Cover from '$lib/components/Cover.svelte';
@@ -116,10 +116,14 @@
         StartShowcase();
     });
 </script>
-<div class="navbar bg-base-100">
+
+<div class="absolute w-screen top-0 left-0 right-0 z-10 bg-base-100 flex p-2">
     <div class="flex-1">
+		<a class="btn btn-ghost normal-case text-xl" href="/credits" on:click|preventDefault={() => {
+			goto('/credits');
+		}}>Credits</a>
     </div>
-    <div class="flex-none">
+    <div class="flex-row flex items-center">
         {#if !$wssConnected}
             <p>Connecting to server...</p>
             <span class="loading loading-ring loading-lg"></span>
@@ -134,10 +138,10 @@
     <div class="hero-content w-full max-w-full">
         <div class="flex flex-col w-1/2">
             <div class="text-center lg:text-left">
-                <h1 class="text-8xl font-bold">Pixel Cover</h1>
-                <p class="py-6">Fight to prove you're the best at finding covers !</p>
+                <h1 class="text-8xl font-bold" transition:fade>Pixel Cover</h1>
+                <p class="py-6" transition:fade>Fight to prove you're the best at finding covers !</p>
             </div>
-            <div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100">
+            <div class="card flex-shrink-0 w-full max-w-sm shadow-2xl bg-base-100" transition:slide>
                 <div class="card-body">
                 <div class="form-control">
                     <label class="label">
@@ -163,8 +167,8 @@
             </div>
         </div>
         <div class="w-1/2">
-            <div class="flex flex-col space-y-2 w-[21rem] items-center justify-center bg-base-100 p-2 shadow-2xl">
-                <div class="h-80 w-80" transition:slide>
+            <div class="flex flex-col space-y-2 w-[21rem] items-center justify-center bg-base-100 p-2 shadow-2xl rounded" transition:slide>
+                <div class="h-80 w-80">
                     {#if !loading}
                         <Cover cover={showcase_cover} pixelate={showcase_cover_pixelate} pixelate_factor={40} showcase/>
                     {/if}
