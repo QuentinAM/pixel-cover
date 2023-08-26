@@ -1,4 +1,4 @@
-import type { CoverType } from "$lib/type";
+import type { Cover as CoverType } from "$lib/websocket/types";
 import type { Cover } from "$lib/websocket/types";
 
 export async function PixelateImage(url: any, pixelate_factor: number, callback: any)
@@ -41,12 +41,12 @@ export async function PixelateImage(url: any, pixelate_factor: number, callback:
     img.src = URL.createObjectURL(blob);
 }
 
-export async function PixelateCovers(covers: CoverType[], pixelate_factor: number): Promise<Cover[]> {
+export async function PixelateCovers(covers: CoverType[]): Promise<Cover[]> {
     return new Promise(async (resolve, reject) => {
         let res: any = [];
         for (let i = 0; i < covers.length; i++) {
             const cover = covers[i];
-            await PixelateImage(cover.link, pixelate_factor, (url: string) => {
+            await PixelateImage(cover.link, cover.pixelate_factor, (url: string) => {
                 res.push({
                     link: url,
                     title: cover.title,

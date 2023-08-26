@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { wssConnected } from "$lib/store";
-
+    import { fade } from "svelte/transition";
     
 </script>
 
@@ -24,6 +24,16 @@
 </div>
 <div class="flex min-h-screen justify-start bg-base-200">
     <div class="hero-content w-full max-w-full">
-
+        <div class="flex flex-row rounded shadow-black shadow-md p-3 w-3/4 space-x-4 items-center" transition:fade>
+            <div class="avatar">
+                <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                    <img src="foxt3c.png" alt="foxt3c" />
+                </div>
+            </div>
+            <div class="flex flex-col">
+                <h2 class="text-xl font-semibold">Support me !</h2>
+                <p class="text-base font-normal">If you like this project, you can support me by donating on <a target="_blank" href="https://paypal.me/QuentinABM" class="text-blue-500 link-hover">Paypal</a>.</p>
+            </div>
+        </div>
     </div>
 </div>

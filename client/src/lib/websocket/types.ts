@@ -60,7 +60,6 @@ export interface StartMessage extends Message {
         allow_misspelling: number;
         replace_special_chars: boolean;
         time_to_answer_after_first_guess: number;
-        pixelate_factor: number;
     }
 }
 
@@ -114,6 +113,7 @@ export interface Cover {
     link: string;
     title: string;
     artist: string;
+    pixelate_factor: number;
     first_to_found_id: string;
     others_to_found_id: string[];
 }
@@ -145,5 +145,4 @@ export interface Room {
     allow_misspelling: number;
     replace_special_chars: boolean;
     time_to_answer_after_first_guess: number;
-    pixelate_factor: number;
 }

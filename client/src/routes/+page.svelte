@@ -94,7 +94,7 @@
                         showcase_guessed = false;
                         showcase_cover_pixelate = true;
                         showcase_cover = {
-                            link: 'https://i.scdn.co/image/ab67616d00001e02550b4528f31fd28007a97ab9',
+                            link: 'https://i.scdn.co/image/ab67616d00001e02550b4528f31fd28007a97aéb9',
                             title: 'LA COURSE',
                             artist: 'NES',
                         };

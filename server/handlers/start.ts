@@ -43,12 +43,23 @@ export async function StartRoom(ws: WebSocket, data: StartMessage) {
         return;
     }
 
+    // Check if there is at least one cover
+    if (data.data.covers.length === 0) {
+        const error = {
+            type: 'ERROR',
+            data: {
+                message: `There is no cover in room ${room_id}`
+            }
+        };
+        ws.send(JSON.stringify(error));
+        return;
+    }
+
     // Update params
     room.case_sensitive = data.data.case_sensitive;
     room.allow_misspelling = data.data.allow_misspelling;
     room.replace_special_chars = data.data.replace_special_chars;
     room.time_to_answer_after_first_guess = data.data.time_to_answer_after_first_guess;
-    room.pixelate_factor = data.data.pixelate_factor;
 
     // Start the game
     room.playing = true;

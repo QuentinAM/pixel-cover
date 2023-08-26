@@ -11,6 +11,7 @@
 	import Logs from '$lib/components/Logs.svelte';
 	import Recap from '$lib/components/Recap.svelte';
     import { PixelateCovers } from '$lib/utils/pixelate';
+    import { select_multiple_value } from 'svelte/internal';
 
 	const room_id = $page.params.room_id;
 	let is_host: boolean = false;
@@ -35,19 +36,22 @@
             title: 'NOVAE',
             artist: 'Yvnnis',
 			first_to_found_id: '',
-			others_to_found_id: []
+			others_to_found_id: [],
+			pixelate_factor: 40
         },
         {
             link: 'https://i.scdn.co/image/ab67616d00001e02550b4528f31fd28007a97ab9',
             title: 'LA COURSE',
             artist: 'NES',
 			first_to_found_id: '',
-			others_to_found_id: []
+			others_to_found_id: [],
+			pixelate_factor: 40
         }
     ];
 	let setting_cover_link: string = '';
 	let setting_cover_title: string = '';
 	let setting_cover_artist: string = '';
+	let setting_selected_cover_index: number = 0;
 
 	// Updated value
 	$: player = $room?.players.find((player) => player.id == $user.id);
@@ -91,7 +95,7 @@
 		if (is_host && $room)
 		{
 			// Create pixelated covers
-			const covers = await PixelateCovers(covers_input, $room.pixelate_factor);
+			const covers = await PixelateCovers(covers_input);
 
 			const message: StartMessage = {
 				type: 'START',
@@ -105,8 +109,7 @@
 					case_sensitive: $room.case_sensitive,
 					allow_misspelling: $room.allow_misspelling,
 					replace_special_chars: $room.replace_special_chars,
-					time_to_answer_after_first_guess: $room.time_to_answer_after_first_guess,
-					pixelate_factor: $room.pixelate_factor
+					time_to_answer_after_first_guess: $room.time_to_answer_after_first_guess
 				}
 			};
 			sendmessage(message);
@@ -214,9 +217,11 @@
 				title: setting_cover_title,
 				artist: setting_cover_artist,
 				first_to_found_id: '',
-				others_to_found_id: []
+				others_to_found_id: [],
+				pixelate_factor: 40
 			}
 		];
+		setting_selected_cover_index = covers_input.length - 1;
 		setting_cover_link = '';
 		setting_cover_artist = '';
 		setting_cover_title = '';
@@ -225,6 +230,10 @@
 	function DeleteCover(link: string)
 	{
 		covers_input = covers_input.filter((cover) => cover.link != link);
+		if (setting_selected_cover_index >= covers_input.length)
+		{
+			setting_selected_cover_index = covers_input.length - 1;
+		}
 	}
 
 	onMount(async () => {
@@ -284,7 +293,7 @@
 			goto('/');
 		}}>Pixel cover</a>
 	</div>
-	<div class="flex-none">
+	<div class="flex-row flex items-center">
 		{#if !$wssConnected}
 			<p>Connecting to server...</p>
 			<span class="loading loading-ring loading-lg"></span>
@@ -307,13 +316,13 @@
 				{#if !$room.playing}
 					{#if is_host}
 						<div class="flex flex-col w-full h-full items-center space-y-2 pt-5">
-							<div class="shadow flex flex-row shadow-black p-3 bg-base-100 space-y-2 lg:w-3/4 w-full space-x-2 rounded">
-								<div class="flex flex-col space-y-1 h-full p-1 w-64">
+							<div class="shadow flex flex-row shadow-black p-3 bg-base-100 space-y-2 w-full space-x-2 rounded">
+								<div class="flex flex-col space-y-1 h-full p-1 w-1/4">
 									<h1 class="text-base font-semibold">Players</h1>
 									<div class="divider divider-vertical"></div>
-									<div class="flex justify-center">
+									<div class="flex justify-center h-full overflow-y-auto">
 										{#each $room.players as player}
-											<p transition:slide class:text-green-400={player.connected} class:text-red-400é={!player.connected}>{player.name}</p>
+											<p transition:slide class:text-green-400={player.connected} class:text-red-400={!player.connected}>{player.name}</p>
 										{/each}
 									</div>
 									<div class="divider divider-vertical"></div>
@@ -323,7 +332,7 @@
 									</div>
 								</div>
 								<div class="divider divider-horizontal"></div>
-								<div>
+								<div class="w-full">
 									<h1 class="text-base font-semibold">Settings</h1>
 									<div class="divider divider-vertical"></div>
 									<div class="space-y-1 flex flex-row">
@@ -343,8 +352,14 @@
 													<tbody>
 														<!-- row 1 -->
 
-														{#each covers_input as cover}
-															<tr>
+														{#each covers_input as cover, i}
+															<tr class:text-yellow-400={setting_selected_cover_index === i}
+																class:cursor-default={setting_selected_cover_index === i} 
+																class:hover:text-yellow-400={setting_selected_cover_index !== i}
+																class:hover:cursor-pointer={setting_selected_cover_index !== i}
+																on:click={() => {
+																setting_selected_cover_index = i;
+															}}>
 																<td>
 																	<div class="avatar">
 																	<div class="mask mask-squircle w-12 h-12">
@@ -393,25 +408,29 @@
 										<div class="divider divider-horizontal"></div>
 										<div class="w-1/2 space-y-2">
 											<h1 class="text-base font-medium">Global params</h1>
-											<div class="form-control">
-												<label class="label cursor-pointer">
-													<span class="label-text">Case sensitive</span> 
-													<input bind:checked={$room.case_sensitive} type="checkbox" class="toggle" />
-												</label>
+											<div class="tooltip tooltip-right w-full" data-tip="Does the uppercase/lowercase matter ? If turned on the answer will have to be exactly the same as the cover title/artist case speaking. ">
+												<div class="form-control">
+													<label class="label cursor-pointer">
+														<span class="label-text">Case sensitive</span> 
+														<input bind:checked={$room.case_sensitive} type="checkbox" class="toggle" />
+													</label>
+												</div>
 											</div>
-											<div class="form-control">
+											<div class="tooltip tooltip-right w-full" data-tip="...">
 												<label class="label cursor-pointer">
 													<span class="label-text">Replace special chars</span> 
 													<input bind:checked={$room.replace_special_chars} type="checkbox" class="toggle" />
 												</label>
 											</div>
-											<div class="form-control w-full">
-												<label class="label">
-													<input class="hidden"/>
-													<span class="label-text">Pixelate factor ({$room.pixelate_factor} px)</span>
-												</label>
-												<input bind:value={$room.pixelate_factor} type="range" min="2" max="150" class="range" step="1" />
-											</div>
+											{#if covers_input.length > 0}
+												<div class="form-control w-full">
+													<label class="label">
+														<input class="hidden"/>
+														<span class="label-text">Pixelate factor ({covers_input[setting_selected_cover_index].pixelate_factor} px)</span>
+													</label>
+													<input bind:value={covers_input[setting_selected_cover_index].pixelate_factor} type="range" min="2" max="150" class="range" step="1" />
+												</div>
+											{/if}
 											<div class="form-control w-full">
 												<label class="label">
 													<input class="hidden"/>
@@ -419,11 +438,11 @@
 												</label>
 												<input bind:value={$room.time_to_answer_after_first_guess} type="number" min="0" max="60" class="input input-primary" />
 											</div>
+											<div class="divider divider-vertical"></div>
 											{#if covers_input.length > 0}
-												<div class="divider divider-vertical"></div>
 												<div class="flex flex-col items-center justify-center">
 													<div class="w-80 h-80">
-															<Cover cover={covers_input[0]} pixelate pixelate_factor={$room.pixelate_factor}/>
+														<Cover cover={covers_input[setting_selected_cover_index]} pixelate pixelate_factor={covers_input[setting_selected_cover_index].pixelate_factor}/>
 													</div>
 													<p class="italic">Pixelation indicator</p>
 												</div>
